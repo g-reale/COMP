@@ -1,1 +1,0 @@
-void scan(unsigned char c);

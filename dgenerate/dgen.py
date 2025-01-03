@@ -53,6 +53,14 @@ def localScope():
     COMMENT = "p"
     COMMENT_OUT = "q"
 
+    # keywords
+    IF = "r"
+    INT = "s"
+    VOID = "t"
+    ELSE = "u"
+    WHILE = "v"
+    RETURN = "w"
+
     _ARGUMENTS = [
         #output file name
         "dfa.h",

@@ -1,5 +1,5 @@
 COMPILER = gcc
-CFLAGS = -g -Wall -Wextra -fopenmp
+CFLAGS = -g -Wall -Wextra -fopenmp -fsanitize=address
 LIBS = 
 INCLUDE = -Idgenerate
 

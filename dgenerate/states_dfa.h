@@ -29,6 +29,11 @@
 	AMBIGUOUS=(unsigned char)'o',
 	COMMENT=(unsigned char)'p',
 	COMMENT_OUT=(unsigned char)'q',
-
+	IF=(unsigned char)'r',
+	INT=(unsigned char)'s',
+	VOID=(unsigned char)'t',
+	ELSE=(unsigned char)'u',
+	WHILE=(unsigned char)'v',
+	RETURN=(unsigned char)'w',
 }dfa_states;
 #endif

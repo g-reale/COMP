@@ -1,0 +1,17 @@
+if int void else while return
+
+Um ninho de mafagafos
+Tinha sete mafagafinhos
+Quem desmafagafar o ninho de mafagafos
+Bom desmafagafador sera
+
++-*/=;,<>()[]{}
+
+/* commas are a problem */
+
+!= <= >= ==
+
+1 2 123123123123 5676481626838
+
+/* logial equal is a problem*/
+
