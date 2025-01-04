@@ -19,13 +19,6 @@ void destroyScanner(scanner * s){
     free(s);
 }
 
-void scan(unsigned char c){
-    static dfa_states state = START;
-    state = DFA[state][c];
-    printf("%d\n",state);
-    printf("%d\n",FAILURE);
-}
-
 dfa_states getToken(scanner * s, char ** lexeme){
 
     //disambiguate using the keyword hash 

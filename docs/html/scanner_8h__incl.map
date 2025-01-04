@@ -1,0 +1,7 @@
+<map id="scanner.h" name="scanner.h">
+<area shape="rect" id="node1" title="DFA based scanner. This file defines the prototypes for the scanner abstraction. The scanner must be ..." alt="" coords="121,5,205,32"/>
+<area shape="rect" id="node2" href="$states__dfa_8h.html" title=" " alt="" coords="5,80,177,107"/>
+<area shape="rect" id="node3" href="$buffer_8h.html" title="Dynamic char buffer. This file defines the prototypes for the buffer abstraction. The buffer&#39;s main r..." alt="" coords="201,80,272,107"/>
+<area shape="rect" id="node4" title=" " alt="" coords="155,155,222,181"/>
+<area shape="rect" id="node5" title=" " alt="" coords="246,155,321,181"/>
+</map>

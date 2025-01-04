@@ -1,3 +1,6 @@
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+== == == == == == == == == ==
+
 if int void else while return
 
 Um ninho de mafagafos
@@ -7,11 +10,16 @@ Bom desmafagafador sera
 
 +-*/=;,<>()[]{}
 
-/* commas are a problem */
+/* commas are not a problem anymore*/
 
 != <= >= ==
 
 1 2 123123123123 5676481626838
 
-/* logial equal is a problem*/
+/* logical equal is not a problem anymore*/
 
+int main(){
+    int a = 1;
+    int b = 2;
+    print(a + b);
+}

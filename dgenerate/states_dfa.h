@@ -35,5 +35,6 @@
 	ELSE=(unsigned char)'u',
 	WHILE=(unsigned char)'v',
 	RETURN=(unsigned char)'w',
+
 }dfa_states;
 #endif

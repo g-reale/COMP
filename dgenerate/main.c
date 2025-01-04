@@ -3,9 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-//the base formating for the rules if {<sources>^<destinations>^<transitions>}
-//if you want to make your life easier use shell enviroment variables to store things like numbers and letters
-//that way you can do something like {$(LETTER)^0^$(NUMBER)} where LETTER:=abcdefg... and NUMBER:=0123..
+// usage <destination_path><rules>
 
 int main(int argc, char * argv[]){
     

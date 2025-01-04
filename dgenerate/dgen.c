@@ -49,7 +49,7 @@ void createReverseTransition(transition t){
     }
 }
 
-void cretateAllTransitions(transition t){
+void createALLTransitions(transition t){
     
     size_t i = 0;
     if(!t.destination)
@@ -111,7 +111,7 @@ void categorize(transition t){
     else{
         if(t.transitions[0] == '*' && t.transitions[1] == '*'){
             printf("all");
-            cretateAllTransitions(t);
+            createALLTransitions(t);
         }
         else if(t.transitions[0] == '-' && t.transitions[1] == '-'){
             printf("reverse");
@@ -123,10 +123,6 @@ void categorize(transition t){
         }
     }
 }
-
-#define sep '_'
-#define open '_'
-#define close '_'
 
 void scan(unsigned char c){
 
