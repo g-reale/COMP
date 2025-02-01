@@ -69,93 +69,6 @@ void traverseTree(node * root, size_t * depth){
     free(ident);
 }
 
-int optionalMatch(parser * p, node * root, dfa_states ** production){
-        
-    size_t index = 0;
-    dfa_states symbol = (*production)[index];
-    dfa_states terminal = p->scan->token;
-    
-    if(IN_FIRST[symbol][terminal]){
-
-        while(symbol != OPTIONAL && symbol != REPETITION && symbol != END && symbol != FAILURE){ 
-            
-            //next production
-            if(IS_NON_TERMINAL[symbol]){
-                recursionMatch(p,createDecedent(root,symbol,p->scan->lexeme),PARSER[symbol][terminal]);
-                terminal = p->scan->token;
-            }
-
-            //try to match
-            else if(symbol != OPTIONAL && symbol != REPETITION){
-                if(terminal == symbol)
-                    createDecedent(root,terminal,p->scan->lexeme);
-                else{
-                    printf("ERRO SINTÁTICO: \"%s\" INVALIDO LINHA: %ld, COLUNA: %ld \n",STATE_NAMES[terminal-START],p->scan->program->line,p->scan->program->column);
-                    p->success = 1;
-                }
-                terminal = getToken(p->scan);
-            }
-
-            index++;
-            symbol = (*production)[index];   
-        }
-        *production = *production + index;
-        return 1;
-    }
-    else{
-        // printf("o%ld: no match\n",depth);
-        while(symbol != OPTIONAL && symbol != REPETITION){
-            index++;
-            symbol = (*production)[index];
-        }
-        *production = *production + index;
-        return 0;
-    }
-}
-
-
-void recursionMatch(parser * p, node * root, dfa_states * production){
-    
-    size_t index = 0;
-    dfa_states symbol = production[index];
-    dfa_states terminal = p->scan->token;
-
-    while(symbol != END && symbol != FAILURE){
-
-        //next production
-        if(IS_NON_TERMINAL[symbol]){
-            recursionMatch(p,createDecedent(root,symbol,p->scan->lexeme),PARSER[symbol][terminal]);
-            terminal = p->scan->token;
-        }
-
-        //try to match
-        else if(symbol != OPTIONAL && symbol != REPETITION){
-            if(terminal == symbol)
-                createDecedent(root,terminal,p->scan->lexeme);
-            else{
-                printf("ERRO SINTÁTICO: \"%s\" INVALIDO LINHA: %ld, COLUNA: %ld \n",STATE_NAMES[terminal-START],p->scan->program->line,p->scan->program->column);
-                p->success = 0;
-            }
-            terminal = getToken(p->scan);
-        }
-
-        //match EBNF (no nested EBNF allowed)
-        else if (symbol == OPTIONAL || symbol == REPETITION){
-            dfa_states * curr_prod;
-            do{
-                curr_prod = production + index + 1;
-            }while(optionalMatch(p,root,&curr_prod) && symbol == REPETITION);
-
-            index = 0;
-            production = curr_prod;
-            terminal = p->scan->token;
-        }
-
-        index++;
-        symbol = production[index];   
-    }
-}
-
 void parseRecursively(parser * p, node * root, dfa_states * production, size_t index, int on_EBNF){
     
     dfa_states symbol = production[index];
@@ -227,9 +140,5 @@ int parse(parser * p){
     
     //recursively parse the program
     parseRecursively(p,p->root,production,0,0);
-    // recursionMatch(p,p->root,production);
-
-    size_t depth = 0;
-    // traverseTree(p->root,&depth);
     return p->success;
 }
