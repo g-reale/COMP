@@ -28,6 +28,8 @@ typedef struct{
      * @brief Set to 1 when done tokenizing
      */
     int done;
+    char * lexeme;
+    dfa_states token;
 }scanner;
 
 /**
@@ -49,5 +51,5 @@ void destroyScanner(scanner * s);
  * @param lexeme lexeme string
  * @return dfa_states returned token
  */
-dfa_states getToken(scanner * s, char ** lexeme);
+dfa_states getToken(scanner * s);
 #endif

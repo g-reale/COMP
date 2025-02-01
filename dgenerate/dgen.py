@@ -23,7 +23,8 @@
  @date 2025-01-04
 """
 
-import os
+import subprocess
+import pickle
 
 def configureDFA():
     """
@@ -37,57 +38,105 @@ def configureDFA():
     _NUMBERS ="0123456789"
     _ANY ="**"
 
-    #start and end
-    START="0"
-    END ="?"
-    FAILURE=':'
+    # Start and end
+    START = chr(32)
+    END = chr(33)
+    FAILURE = chr(34)
 
-    # single character tokens
-    SUM="1"
-    SUB="2"
-    MUL="3"
-    DIV="4"
-    LESS="5"
-    MORE="6"
-    SEMI="7"
-    COMMA="8"
-    EQUAL="a"
-    OPEN_ROUND = "b"
-    CLOSE_ROUND = "c"
-    OPEN_SQUARE = "d"
-    CLOSE_SQUARE = "e"
-    OPEN_CURLY = "f"
-    CLOSE_CURLY = "g"
+    # Single character tokens
+    SUM = chr(35)
+    SUB = chr(36)
+    MUL = chr(37)
+    DIV = chr(38)
+    LESS = chr(39)
+    MORE = chr(40)
+    SEMI = chr(41)
+    COMMA = chr(42)
+    EQUAL = chr(43)
+    OPEN_ROUND = chr(44)
+    CLOSE_ROUND = chr(45)
+    OPEN_SQUARE = chr(46)
+    CLOSE_SQUARE = chr(47)
+    OPEN_CURLY = chr(48)
+    CLOSE_CURLY = chr(49)
+
     _SINGLE_CHARACTER_TOKENS = SUM + SUB + MUL + DIV + LESS + MORE + SEMI + COMMA + EQUAL + OPEN_ROUND + CLOSE_ROUND + OPEN_SQUARE + CLOSE_SQUARE + OPEN_CURLY + CLOSE_CURLY
 
-    # double character tokens
-    LESS_EQ = "h"
-    MORE_EQ = "i"
-    LOGICAL_EQ = "j"
-    NOT = "k"
-    NOT_EQUAL = "l"
+    # Double character tokens
+    LESS_EQ = chr(50)
+    MORE_EQ = chr(51)
+    LOGICAL_EQ = chr(52)
+    NOT = chr(53)
+    NOT_EQUAL = chr(54)
+
     _DOUBLE_CHARACTER_TOKENS = LESS_EQ + MORE_EQ + LOGICAL_EQ + NOT_EQUAL
 
-    # numbers
-    NUM = "m"
+    # Numbers
+    NUM = chr(55)
 
-    # ambiguous/identifiers/keywords
-    IDENTIFIER = "n"
-    AMBIGUOUS = "o"
+    # Ambiguous/identifiers/keywords
+    IDENTIFIER = chr(56)
+    AMBIGUOUS = chr(57)
 
-    # comments 
-    COMMENT = "p"
-    COMMENT_OUT = "q"
+    # Comments
+    COMMENT = chr(58)
+    COMMENT_OUT = chr(59)
 
-    # keywords
-    IF = "r"
-    INT = "s"
-    VOID = "t"
-    ELSE = "u"
-    WHILE = "v"
-    RETURN = "w"
+    # Keywords
+    IF = chr(60)
+    INT = chr(61)
+    VOID = chr(62)
+    ELSE = chr(63)
+    WHILE = chr(64)
+    RETURN = chr(65)
 
+    # Grammar non-terminals
+    PROGRAM = chr(66)
+    DECLARATION = chr(67)
+    TYPE = chr(68)
+    DECLARATION_DECISION = chr(69)
+
+    SCALAR_DECL = chr(70)
+    FUN_DECL = chr(71)
+    VEC_DECL = chr(72)
+
+    PARAMS = chr(73)
+    PARAMS_LIST = chr(74)
+    PARAM = chr(75)
+
+    COMPOSED_DECL = chr(76)
+    LOCAL_DECL = chr(77)
+    VAR_DECL = chr(78)
+    VAR_DECISION = chr(79)
+
+    STATEMENT_LIST = chr(80)
+    STATEMENT = chr(81)
+    EXPRESSION_DECL = chr(82)
+    ITERATION_DECL = chr(83)
+    SELECTION_DECL = chr(84)
+    RETURN_DECL = chr(85)
+
+    EXPRESSION = chr(86)
+    VAR = chr(87)
+    SIMPLE_EXP = chr(88)
+    SUM_EXP = chr(89)
+    TERM = chr(90)
+    FACTOR = chr(91)
+    RELATIONAL = chr(92)
+    PLUS_MINUS = chr(93)
+    MUL_DIV = chr(94)
+    ACTIVATION_DECISION = chr(95)
+    ARGS = chr(96)
+
+    # EBNF notation
+    OPTIONAL = chr(97)
+    REPETITION = chr(98)
+
+ 
     _ARGUMENTS = [
+        #C program executable
+        "./main",
+
         #output file name
         "dfa.h",
         
@@ -144,19 +193,40 @@ def configureDFA():
         f"_{COMMENT_OUT}_{START}_/_", #overwrite the above any transition when leaving the comment
     ]
 
-    _command = './main ' + ' '.join([f"\"{argument}\"" for argument in _ARGUMENTS])
-    print(_command)
-    os.system(_command)
+    subprocess.run(_ARGUMENTS,check=True)
+    # print(_ARGUMENTS)
+    _state_amount = 0
+    _name_len = 0
+    _mapping = {}
+    _program = "#ifndef STATES_DFA_H\n#define STATES_DFA_H\n typedef enum{\n"
     
-    _command = 'echo "#ifndef STATES_DFA_H\n#define STATES_DFA_H\n typedef enum{\n'
     for _variable, _value in locals().items():
         if(_variable[0] == '_'):
             continue
-        _command = f"{_command}\t{_variable}=(unsigned char)'{_value[0]}',\n"
+        _program += f"\t{_variable}=(unsigned char){ord(_value)},\n"
+        _mapping[_variable] = ord(_value);
+        _name_len = max(_name_len,len(_variable))
+        _state_amount += 1
+
+    _program += "\n}dfa_states;\n"
     
-    _command = _command + f'\n}}dfa_states;\n#endif" > states_{_ARGUMENTS[0]}'
-    print(_command)
-    os.system(_command)
+    _program += f"static const char STATE_NAMES[{_state_amount+1}][{_name_len+1}] = {{"
+    for _variable, _value in locals().items():
+        if(_variable[0] == '_'):
+            continue
+        _program += f'"{_variable}", '
+    _program = _program[:-2]
+    _program += "};\n#endif"
+
+    print(_program)
+
+    # save the state mapping for other scripts
+    with open("mapping.pkl","wb") as file:
+        pickle.dump(_mapping,file)
+
+    with open(f"states_{_ARGUMENTS[1]}","w") as file:
+        file.write(_program)
+
         
 if __name__ == "__main__":
     configureDFA()

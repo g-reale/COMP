@@ -7,7 +7,7 @@
 
 int main(int argc, char * argv[]){
     
-    memset(DFA,(unsigned char)'°', 256 * 256 * sizeof(unsigned char));
+    memset(DFA,(unsigned char)34, 256 * 256 * sizeof(unsigned char));
 
     if(argc < 3){
         fprintf(stderr,"not enought arguments, (%d)\n", argc);

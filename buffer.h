@@ -24,6 +24,14 @@ typedef struct{
      */
     size_t line;
     /**
+     * @brief Current column of the line
+     */
+    size_t column;
+    /**
+     * @brief Previous column (will update the column variable in case of a @ref ungetChar call, but only once)
+     */
+    size_t prev_column;
+    /**
      * @brief Current char to return
      */
     size_t at;

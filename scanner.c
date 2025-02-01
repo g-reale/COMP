@@ -7,19 +7,20 @@
 #include <stdlib.h>
 
 scanner * startScanner(char * path){
-    buffer * b = startBuffer(path,256); 
     scanner * s = (scanner*)malloc(sizeof(scanner));
-    s->program = b;
+    s->lexeme = (char*)malloc(0);
+    s->program = startBuffer(path,1024); 
     s->done = 0;
     return s;
 }
 
 void destroyScanner(scanner * s){
     destroyBuffer(s->program);
+    free(s->lexeme);
     free(s);
 }
 
-dfa_states getToken(scanner * s, char ** lexeme){
+dfa_states getToken(scanner * s){
 
     //disambiguate using the keyword hash 
     static const size_t KEYWORD_AMOUNT = 6;
@@ -28,8 +29,10 @@ dfa_states getToken(scanner * s, char ** lexeme){
     static const unsigned long KEYWORD_HASHES[] = {2757, 81381, 1831584, 1855825, 48126587, 1361184172};
 
 
-    if(s->done)
+    if(s->done){
+        s->token = FAILURE;
         return FAILURE;
+    }
 
     unsigned long hash = 0;
     size_t digit = 1;
@@ -45,7 +48,7 @@ dfa_states getToken(scanner * s, char ** lexeme){
         token = state;
         c = getChar(s->program);
         state = DFA[state][(size_t)c];
-        
+
         //if ambiguous decide via hash
         if(state == AMBIGUOUS && hash < HASH_MAX){
             hash += digit * c;
@@ -69,11 +72,12 @@ dfa_states getToken(scanner * s, char ** lexeme){
             }
         }}
     }
-    
+
     if(token == IDENTIFIER || token == NUM)
-        copyLast(s->program,lexeme,slice);
+        copyLast(s->program,&(s->lexeme),slice);
     
     s->done = c == EOF;     
     ungetChar(s->program); //go back one char
+    s->token = token;
     return token;
 }

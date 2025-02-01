@@ -9,7 +9,7 @@ buffer * startBuffer(char * path, size_t size){
     
     //allocates
     buffer * b = (buffer*)malloc(sizeof(buffer));
-    b->halo = 1;
+    b->halo = 256;
 
     //sentinel clauses
     FILE * fid = fopen(path,"r");
@@ -25,11 +25,13 @@ buffer * startBuffer(char * path, size_t size){
     }
 
     //initialization
-    b->line = 0;
+    b->line = 1;
     b->at = 0;
     b->size = size;
     b->done = 0;
     b->fid = fid;
+    b->column = 0;
+    b->prev_column = 0;
     b->chunk = (char*)malloc(sizeof(char) * size);
     return b;
 }
@@ -71,7 +73,13 @@ char getChar(buffer * b){
     //return more letters
     char c = b->chunk[b->at];
     b->done = c == EOF;
-    b->line += c == '\n';
+    b->prev_column = b->column;
+    if(c == '\n'){
+        b->line++;
+        b->column = 0;
+    }
+    else
+        b->column++;
     b->at++;
     return c;
 }
@@ -84,6 +92,7 @@ void ungetChar(buffer * b){
     //go to the previous character
     b->at--;
     b->line -= b->chunk[b->at] == '\n';
+    b->column = b->prev_column; //can get the previous column once
 }
 
 void destroyBuffer(buffer * b){

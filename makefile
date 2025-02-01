@@ -1,7 +1,7 @@
 COMPILER = gcc
-CFLAGS = -g -Wall -Wextra -fopenmp -fsanitize=address
+CFLAGS = -g -Wall -Wextra -fsanitize=address
 LIBS = 
-INCLUDE = -Idgenerate
+INCLUDE = -Idgenerate -Iggenerate
 
 SRC_FILES = $(wildcard *.c)
 OBJ_FILES = $(patsubst %.c, object/%.o, $(SRC_FILES))

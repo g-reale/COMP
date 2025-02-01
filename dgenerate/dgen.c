@@ -105,20 +105,20 @@ void categorize(transition t){
         i++;
     
     if(i < 2){
-        printf("default");
+        // printf("default");
         createTransition(t);
     }
     else{
         if(t.transitions[0] == '*' && t.transitions[1] == '*'){
-            printf("all");
+            // printf("all");
             createALLTransitions(t);
         }
         else if(t.transitions[0] == '-' && t.transitions[1] == '-'){
-            printf("reverse");
+            // printf("reverse");
             createReverseTransition(t);
         }
         else{
-            printf("default");
+            // printf("default");
             createTransition(t);
         }
     }
