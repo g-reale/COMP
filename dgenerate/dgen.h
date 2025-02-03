@@ -1,6 +1,6 @@
 /**
  * @file dgen.h
- * @author Gabriel Reale - Stefanini Rafael (groliveira5@stefanini.com)
+ * @author Gabriel Reale - Unifesp (gabrie.reale@unifesp.br)
  * @brief generate a dfa.
  * This file defines the prototypes for dfa generation.
  * @version 0.1

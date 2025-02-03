@@ -1,6 +1,6 @@
 /**
  * @file buffer.h
- * @author Gabriel Reale - Stefanini Rafael (groliveira5@stefanini.com)
+ * @author Gabriel Reale - Unifesp (gabrie.reale@unifesp.br)
  * @brief Dynamic char buffer.
  * This file defines the prototypes for the buffer abstraction. 
  * The buffer's main responsibility is the direct interaction with the program file and returning chars when requested.  

@@ -3,10 +3,10 @@
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project.
 #
-# All text after a double hash (##) is considered a comment and is placed in
+# All text after a double variables (##) is considered a comment and is placed in
 # front of the TAG it is preceding.
 #
-# All text after a single hash (#) is considered a comment and will be ignored.
+# All text after a single variables (#) is considered a comment and will be ignored.
 # The format is:
 # TAG = value [value, ...]
 # For lists, items can also be appended using:
@@ -441,7 +441,7 @@ INLINE_SIMPLE_STRUCTS  = NO
 # typedef struct TypeS {} TypeT, will appear in the documentation as a struct
 # with name TypeT. When disabled the typedef will appear as a member of a file,
 # namespace, or class. And the struct will be named TypeS. This can typically be
-# useful for C code in case the coding convention dictates that all compound
+# useful for C code in case the coding convention contextates that all compound
 # types are typedef'ed and only the typedef is referenced, never the tag name.
 # The default value is: NO.
 

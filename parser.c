@@ -1,21 +1,31 @@
 #include "ggenerate/production_table.h"
 #include "dgenerate/states_dfa.h"
+#include "semantis.h"
 #include "scanner.h"
 #include "parser.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-parser * startParser(scanner * s){
+parser * startParser(scanner * s, semantis * tix, int quiet){
     parser * p = (parser*)malloc(sizeof(parser));
     p->root = createNode(PROGRAM,NULL);
+    p->tix = tix;
     p->scan = s;
     p->success = 1;
+    p->quiet = quiet;
     return p;
 }
 
 void destroyParser(parser * p){
+    destroySemantis(p->tix);
     destroyScanner(p->scan);
+    
+    if(!p->quiet){
+        size_t depth = 0;
+        traverseTree(p->root,&depth);
+    }
+    
     destroyTree(p->root);
     free(p);
 }
@@ -88,8 +98,10 @@ void parseRecursively(parser * p, node * root, dfa_states * production, size_t i
 
         //try to match
         else if(symbol != OPTIONAL && symbol != REPETITION){
-            if(terminal == symbol)
+            if(terminal == symbol){
+                analise(p->tix,terminal,p->scan->lexeme,p->scan->program->line);
                 createDecedent(root,terminal,p->scan->lexeme);
+            }
             else{
                 printf("ERRO SINTÁTICO: \"%s\" INVALIDO LINHA: %ld, COLUNA: %ld \n",STATE_NAMES[terminal-START],p->scan->program->line,p->scan->program->column);
                 p->success = 0;
@@ -140,5 +152,7 @@ int parse(parser * p){
     
     //recursively parse the program
     parseRecursively(p,p->root,production,0,0);
+    // size_t depth = 0;
+    // traverseTree(p->root,&depth);
     return p->success;
 }

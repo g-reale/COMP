@@ -37,6 +37,9 @@ def configureDFA():
     _LETTERS = _LOWERCASE + _UPPERCASE 
     _NUMBERS ="0123456789"
     _ANY ="**"
+    _WHITE_SPACE = "\n\t "
+    _PROHIBITED = "!'$%&.:?@^_`|\\~"
+    _PROHIBITED += '"'
 
     # Start and end
     START = chr(32)
@@ -93,44 +96,43 @@ def configureDFA():
     # Grammar non-terminals
     PROGRAM = chr(66)
     DECLARATION = chr(67)
-    TYPE = chr(68)
-    DECLARATION_DECISION = chr(69)
-
+    DECLARATION_DECISION = chr(68)
+    VEC_DECL = chr(69)
     SCALAR_DECL = chr(70)
-    FUN_DECL = chr(71)
-    VEC_DECL = chr(72)
-
+    VOID_FUN_DECL = chr(71)
+    INT_FUN_DECL = chr(72)
     PARAMS = chr(73)
-    PARAMS_LIST = chr(74)
-    PARAM = chr(75)
-
-    COMPOSED_DECL = chr(76)
+    PARAM = chr(74)
+    INT_COMPOSED_DECL = chr(75)
+    VOID_COMPOSED_DECL = chr(76)
     LOCAL_DECL = chr(77)
     VAR_DECL = chr(78)
     VAR_DECISION = chr(79)
+    INT_STATEMENT_LIST = chr(80)
+    INT_STATEMENT = chr(81)
+    INT_SELECTION_DECL = chr(82)
+    INT_ITERATION_DECL = chr(83)
+    INT_RETURN_DECL = chr(84)
+    VOID_STATEMENT_LIST = chr(85)
+    VOID_STATEMENT = chr(86)
+    VOID_SELECTION_DECL = chr(87)
+    VOID_ITERATION_DECL = chr(88)
+    VOID_RETURN_DECL = chr(89)
+    EXPRESSION_DECL = chr(90)
+    EXPRESSION = chr(91)
+    VAR = chr(92)
+    SIMPLE_EXP = chr(93)
+    RELATIONAL = chr(94)
+    SUM_EXP = chr(95)
+    PLUS_MINUS = chr(96)
+    TERM = chr(97)
+    MUL_DIV = chr(98)
+    FACTOR = chr(99)
+    ACTIVATION_DECISION = chr(100)
+    ARGS = chr(101)
 
-    STATEMENT_LIST = chr(80)
-    STATEMENT = chr(81)
-    EXPRESSION_DECL = chr(82)
-    ITERATION_DECL = chr(83)
-    SELECTION_DECL = chr(84)
-    RETURN_DECL = chr(85)
-
-    EXPRESSION = chr(86)
-    VAR = chr(87)
-    SIMPLE_EXP = chr(88)
-    SUM_EXP = chr(89)
-    TERM = chr(90)
-    FACTOR = chr(91)
-    RELATIONAL = chr(92)
-    PLUS_MINUS = chr(93)
-    MUL_DIV = chr(94)
-    ACTIVATION_DECISION = chr(95)
-    ARGS = chr(96)
-
-    # EBNF notation
-    OPTIONAL = chr(97)
-    REPETITION = chr(98)
+    OPTIONAL = chr(102)
+    REPETITION = chr(103)
 
  
     _ARGUMENTS = [
@@ -141,7 +143,9 @@ def configureDFA():
         "dfa.h",
         
         # handle any non overwriten characters
-        f"_{START}_{START}_{_ANY}_",
+        f"_{START}_{FAILURE}_{_ANY}_",
+        f"_{START}_{START}_{_WHITE_SPACE}_",
+        # f"_{START}_{FAILURE}_{_PROHIBITED}_",
 
         # single character tokens (overwrite some of the START state transitions)
         f"_{START}_{SUM}_+_",

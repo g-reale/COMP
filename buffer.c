@@ -81,6 +81,7 @@ char getChar(buffer * b){
     else
         b->column++;
     b->at++;
+
     return c;
 }
 

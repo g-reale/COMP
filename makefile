@@ -5,7 +5,7 @@ INCLUDE = -Idgenerate -Iggenerate
 
 SRC_FILES = $(wildcard *.c)
 OBJ_FILES = $(patsubst %.c, object/%.o, $(SRC_FILES))
-TARGET = main
+TARGET = g--
 
 all: $(TARGET)
 
