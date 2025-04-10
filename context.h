@@ -31,14 +31,6 @@ typedef struct variable{
      */
     dfa_states category;
     /**
-     * @brief A list with the enumerated categories of a function's arguments
-     */
-    dfa_states * argument_category;
-    /**
-     * @brief The amount of arguments a function takes
-     */
-    size_t argument_amount;
-    /**
      * @brief Lines where this variable is used
      */
     size_t * uses;
@@ -148,11 +140,4 @@ variable * isUnique(variable * list, size_t size, char * lexeme);
  * @param line line of the use
  */
 void useVar(variable * var, size_t line);
-/**
- * @brief Insert a new argument type into the variable/function
- * 
- * @param var function
- * @param category new argument category
- */
-void insertArgument(variable * var, dfa_states category);
 #endif

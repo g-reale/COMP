@@ -64,7 +64,6 @@ void destroyList(variable * list, size_t size){
     for(size_t i = 0; i < size; i++){
         free(list[i].lexeme);
         free(list[i].uses);
-        free(list[i].argument_category);
     }
     if(size)
         free(list);
@@ -104,9 +103,7 @@ variable * insert(variable ** list, size_t * size, dfa_states type, char * lexem
     v.uses[0] = line;
     v.type = type;
     v.category = category;
-    v.argument_category = (dfa_states*)malloc(0);
-    v.argument_amount = 0;
-    
+
     //insert into list
     *list = (variable*)realloc(*list,sizeof(variable) * (*size + 1));
     *list[*size] = v;
@@ -133,9 +130,4 @@ void useVar(variable * var, size_t line){
     var->use_amount += 1;
 }
 
-void insertArgument(variable * var, dfa_states category){
-    var->argument_category = (dfa_states*)realloc(var->argument_category,sizeof(dfa_states) * (var->argument_amount + 1));
-    var->argument_category[var->argument_amount] = category;
-    var->argument_amount++;
-}   
 

@@ -6,6 +6,16 @@ semantis * startSemantis(size_t context_size, int quiet){
     s->context_size = context_size;
     s->context_stack[0] = startContext(context_size,"root",0,quiet);
     s->top = 0;
+
+    size_t index = hash("input",s->context_size);
+    variable ** list = &s->context_stack[0]->variables[index];
+    size_t * size = &s->context_stack[0]->var_count[index];
+    insert(list,size,INT,"input",OPEN_ROUND,0);
+
+    index = hash("output",s->context_size);
+    list = &s->context_stack[0]->variables[index];
+    size = &s->context_stack[0]->var_count[index];
+    insert(list,size,VOID,"output",OPEN_ROUND,0);
     
     s->type = FAILURE;
     s->lexeme = (char*)malloc(0);
@@ -100,7 +110,7 @@ variable * declareVar(semantis * s, size_t line){
     return var;
 }
 
-variable * searchVar(semantis * s, size_t line, int name_only){
+variable * searchVar(semantis * s, size_t line){
     size_t index = hash(s->lexeme, s->context_size);
     variable * var = NULL;
     size_t i = s->top;
@@ -119,74 +129,16 @@ variable * searchVar(semantis * s, size_t line, int name_only){
         s->success = 0;
         return NULL;
     }
-    else if(!name_only && var->category != s->category){
-        printf("ERRO SEMANTICO: simbolo \"%s\" utilizado como categoria diferente do definido LINHA: %ld\n",s->lexeme,line);
-        s->success = 0;
-        return NULL;
-    }
+
     useVar(var,line);
     return var;
 }
 
-void matchParam(semantis * s, variable * var, int constant, size_t line){
-    
-    if(s->func == NULL)
-        return;
-
-    if(var == NULL && !constant)
-        return;
-    
-    if(s->func->argument_amount <= s->arg_count){
-        printf("ERRO SEMANTICO: muitos argumentos para a função: \"%s\" esperava %ld tomou %ld LINHA: %ld\n",
-            s->func->lexeme,
-            s->func->argument_amount,
-            s->arg_count + 1, 
-            line
-        );
-        s->success = 0;
-        return;
-    }
-
-    dfa_states category = constant ? SEMI : var->category;
-
-    if(category != s->func->argument_category[s->arg_count]){
-        printf("ERRO SEMANTICO: argumento %ld de %s deve ser %s não %s LINHA: %ld\n",
-            s->arg_count,
-            s->func->lexeme,
-            STATE_NAMES[s->func->argument_category[s->arg_count] - START],
-            STATE_NAMES[category - START],
-            line
-        );
-        s->success = 0;
-    }
-
-    s->arg_count++;
-}
-
-void callFunc(semantis * s, size_t line){
-
-    if(s->func == NULL)
-        return;
-
-    if(s->func->argument_amount != s->arg_count)
-        printf("ERRO SEMANTICO: poucos argumentos para a função \"%s\" esperava %ld tomou %ld LINHA: %ld\n",
-            s->func->lexeme,
-            s->func->argument_amount,
-            s->arg_count,
-            line
-        );
-    s->arg_count = 0;
-}
-
-void registerArgument(semantis *s, size_t line){
-    if(s->main_declared)
-        printf("ERRO SEMANTICO: inserção de argumentos após a declaração da main LINHA: %ld\n",line);
-    insertArgument(s->func,s->category);
-}
-
 //use a DFA to choose the semantis's actions
 void analise(semantis * s, dfa_states terminal, char * lexeme, size_t line){
-    // printf("called analise %u %s\n",s->state,STATE_NAMES[terminal-START]);
+    
+    // static const char * state_names[] = {"BEGIN","DECL_1","DECL_2","USE_1","USE_2"};
+    // printf("called analise %s %s\n",state_names[s->state],STATE_NAMES[terminal-START]);
 
     switch(s->state){
 
@@ -227,49 +179,17 @@ void analise(semantis * s, dfa_states terminal, char * lexeme, size_t line){
 
         case USE_1:
             switch (terminal){
+                
                 case OPEN_ROUND:
-                    s->category = terminal;
-                    s->func = searchVar(s,line,1);
-                    s->state = USE_2;
-                    break;
-
                 case OPEN_SQUARE:
                     s->category = terminal;
-                    searchVar(s,line,0);
+                    searchVar(s,line);
                     s->state = BEGIN;
                     break;
-                
+
                 default:
                     s->category = SEMI;
-                    searchVar(s,line,0);
-                    s->state = BEGIN;
-                    break;
-            }
-        break;
-
-        case USE_2:
-            switch (terminal){
-
-                case IDENTIFIER:
-                    s->lexeme = (char*)realloc(s->lexeme,sizeof(char) * (strlen(lexeme) + 1));
-                    strcpy(s->lexeme,lexeme);
-                    matchParam(s,searchVar(s,line,1),0,line);
-                    break;
-
-                case NUM:
-                    matchParam(s,NULL,1,line);
-                    break;
-
-                case CLOSE_ROUND:
-                    callFunc(s,line);
-                    s->state = BEGIN;
-                    break;
-
-                case COMMA:
-                    s->state = USE_2;
-                    break;
-                
-                default:
+                    searchVar(s,line);
                     s->state = BEGIN;
                     break;
             }
@@ -292,123 +212,26 @@ void analise(semantis * s, dfa_states terminal, char * lexeme, size_t line){
 
         case DECL_2:
             switch (terminal){
-                
+
                 case OPEN_ROUND:
+                case OPEN_SQUARE:
                     s->category = terminal;
-                    s->func = declareVar(s,line);
-                    s->state = ARG_1;
+                    declareVar(s,line);
+                    s->state = BEGIN;
                     break;
                 
-
                 case SEMI:
-                case OPEN_SQUARE:
-                    s->category = terminal;
-                    declareVar(s,line);
-                    s->state = BEGIN;
-                    break;
-                
-                default:
-                    s->state = BEGIN;
-                    break;
-            }
-        break;
-
-        case ARG_1:
-            switch (terminal){
-
-                case VOID:
-                    s->state = ARG_1;
-                    break;
-
                 case CLOSE_ROUND:
-                    s->state = ARG_6;
-                    break;
-
-                case INT:
-                    s->type = INT;
-                    s->state = ARG_2;
-                    break;
-                
-                default:
-                    s->state = BEGIN;
-                    break;
-            }
-        break;
-
-        case ARG_2:
-            switch (terminal){
-                case IDENTIFIER:
-                    s->lexeme = (char*)realloc(s->lexeme,sizeof(char) * (strlen(lexeme) + 1));
-                    strcpy(s->lexeme,lexeme);
-                    s->state = ARG_3;
-                    break;
-                
-                default:
-                    s->state = BEGIN;
-                    break;
-            }
-        break;
-            
-        case ARG_3:
-            switch (terminal){
-                
                 case COMMA:
                     s->category = SEMI;
                     declareVar(s,line);
-                    registerArgument(s,line);
-                    s->state = ARG_1;
-                    break;
-                
-                case CLOSE_ROUND:
-                    s->category = SEMI;
-                    declareVar(s,line);
-                    registerArgument(s,line);
-                    s->state = ARG_6;
-                    break;
-
-                case OPEN_SQUARE:
-                    s->category = OPEN_SQUARE;
-                    declareVar(s,line);
-                    registerArgument(s,line);
-                    s->state = ARG_4;
+                    s->state = BEGIN;
+                    s->state = BEGIN;
                     break;
                 
                 default:
                     s->state = BEGIN;
-                    break;
             }
-        break;
-
-        case ARG_4:
-            switch (terminal){
-                case CLOSE_SQUARE:
-                    s->state = ARG_5;
-                    break;
-                
-                default:
-                    s->state = BEGIN;
-                    break;
-                }
-        break;
-
-        case ARG_5:
-            switch (terminal){
-                case COMMA:
-                    s->state = ARG_1;
-                    break;
-
-                case CLOSE_ROUND:
-                    s->state = ARG_6;
-                    break;
-                
-                default:
-                    s->state = BEGIN;
-                    break;
-            }
-        break;
-
-        case ARG_6:
-            s->state = BEGIN;
         break;
     }
 }
