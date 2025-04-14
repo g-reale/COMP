@@ -11,13 +11,20 @@ intermediary * createIntermediary(parser * par, int quiet){
         .code_size = 0,
         .root = par->root,
         .anonymous_index = 0,
-        .anonymous = (char*)malloc(sizeof(char) * 3),
+        .anonymous = (char*)malloc(sizeof(char) * 4),
         .quiet = quiet
     };
 
     *inter = aux;
-    strcpy(inter->anonymous,"t_");
+    strcpy(inter->anonymous,"t_0");
     return inter;
+}
+
+void nextLabel(intermediary * inter){
+    inter->anonymous_index++;
+    size_t size = snprintf ( NULL, 0, "t_%ld", inter->anonymous_index);
+    inter->anonymous = (char*)realloc(inter->anonymous,size+1);
+    sprintf(inter->anonymous,"t_%ld",inter->anonymous_index);
 }
 
 void destroyIntermediary(intermediary * inter){
@@ -61,6 +68,56 @@ void generate(intermediary * inter, node * root){
         generate(inter,root->decedents[i]);
 
     switch (root->token){
+
+        case FACTOR:
+            char * identifier = root->decedents[0]->token == IDENTIFIER ||
+                                root->decedents[0]->token == NUM ?
+                                root->decedents[0]->lexeme:
+                                root->decedents[1]->lexeme;
+            root->lexeme = (char*)malloc(sizeof(char) * strlen(identifier)+1);
+            strcpy(root->lexeme,identifier);
+            break;
+
+        case EXPRESSION:
+            break;
+
+        case SIMPLE_EXP:
+        case TERM:
+        case SUM_EXP:
+
+            if(root->decedent_amount == 1){
+                root->lexeme = (char*)malloc(sizeof(char) * strlen(root->decedents[0]->lexeme)+1);
+                strcpy(root->lexeme,root->decedents[0]->lexeme);
+                return;
+            }
+
+            char * source_A = root->decedents[0]->lexeme;
+            char * source_B;
+            dfa_states instruction;
+            
+            for(size_t i = 1; i < root->decedent_amount; i++){
+                if(root->decedents[i]->token == MUL_DIV || 
+                   root->decedents[i]->token == PLUS_MINUS ||
+                   root->decedents[i]->token == RELATIONAL
+                ){
+                    instruction = root->decedents[i]->decedents[0]->token;
+                    continue;
+                }
+
+                if(root->decedents[i]->token == EQUAL){
+                    instruction = EQUAL;
+                    continue;
+                }
+                
+                source_B = root->decedents[i]->lexeme;
+                insertQuadruple(inter,createQuadruple(instruction,inter->anonymous,source_A,source_B,inter->quiet));
+                source_A = inter->anonymous;
+                nextLabel(inter);
+            }
+            
+            root->lexeme = (char*)malloc(sizeof(char) * strlen(inter->anonymous)+1);
+            strcpy(root->lexeme,inter->anonymous);
+            break;
         
         case VOID_FUN_DECL:
         case INT_FUN_DECL:
