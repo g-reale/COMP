@@ -43,7 +43,6 @@ void insertQuadruple(intermediary * inter, quadruple quad){
 
 void generate(intermediary * inter, node * root){
 
-    // printf("%s\n",STATE_NAMES[root->token-START]);
     switch (root->token){
         
         case DECLARATION:{
@@ -69,29 +68,30 @@ void generate(intermediary * inter, node * root){
 
     switch (root->token){
 
-        case FACTOR:
-            char * identifier = root->decedents[0]->token == IDENTIFIER ||
-                                root->decedents[0]->token == NUM ?
-                                root->decedents[0]->lexeme:
-                                root->decedents[1]->lexeme;
-            root->lexeme = (char*)malloc(sizeof(char) * strlen(identifier)+1);
-            strcpy(root->lexeme,identifier);
-            break;
-
-        case EXPRESSION:
-            break;
-
-        case SIMPLE_EXP:
-        case TERM:
-        case SUM_EXP:
-
+        case EXPRESSION:{
             if(root->decedent_amount == 1){
-                root->lexeme = (char*)malloc(sizeof(char) * strlen(root->decedents[0]->lexeme)+1);
-                strcpy(root->lexeme,root->decedents[0]->lexeme);
+                root->lexeme = strdup(root->decedents[0]->lexeme);
                 return;
             }
 
-            char * source_A = root->decedents[0]->lexeme;
+            for(size_t i = root->decedent_amount -1; i - 1 < i; i--){
+                if(root->decedents[i]->token != EQUAL)
+                    continue;
+                insertQuadruple(inter,createQuadruple(EQUAL,root->decedents[i-1]->lexeme,root->decedents[i+1]->lexeme,NULL,inter->quiet));
+            }
+
+        }break;
+
+        case SIMPLE_EXP:
+        case TERM:
+        case SUM_EXP:{
+
+            if(root->decedent_amount == 1){
+                root->lexeme = strdup(root->decedents[0]->lexeme);
+                return;
+            }
+
+            char * source_A = strdup(root->decedents[0]->lexeme);
             char * source_B;
             dfa_states instruction;
             
@@ -104,26 +104,92 @@ void generate(intermediary * inter, node * root){
                     continue;
                 }
 
-                if(root->decedents[i]->token == EQUAL){
-                    instruction = EQUAL;
-                    continue;
-                }
-                
                 source_B = root->decedents[i]->lexeme;
                 insertQuadruple(inter,createQuadruple(instruction,inter->anonymous,source_A,source_B,inter->quiet));
-                source_A = inter->anonymous;
-                nextLabel(inter);
+                free(source_A);
+                source_A = strdup(inter->anonymous);
+                if(i+1 < root->decedent_amount) nextLabel(inter);
             }
-            
+            free(source_A);
             root->lexeme = (char*)malloc(sizeof(char) * strlen(inter->anonymous)+1);
             strcpy(root->lexeme,inter->anonymous);
-            break;
+            nextLabel(inter);
+            
+        }break;
         
         case VOID_FUN_DECL:
-        case INT_FUN_DECL:
+        case INT_FUN_DECL:{
             insertQuadruple(inter,createQuadruple(root->token,NULL,NULL,NULL,inter->quiet)); 
-            break;
-        
+        }break;
+
+        case FACTOR:{
+            
+            //just identifier or number
+            if(root->decedent_amount == 1){
+                root->lexeme = strdup(root->decedents[0]->lexeme);
+                return;
+            }
+
+            //expression
+            if(root->decedents[0]->token == OPEN_ROUND){
+                root->lexeme = strdup(root->decedents[1]->lexeme);
+                return;
+            }
+
+            //vector activation
+            if(root->decedents[1]->decedents[0]->token == VECTOR_ACTIVATION){
+                insertQuadruple(inter,createQuadruple(
+                                    MUL,
+                                    inter->anonymous,
+                                    root->decedents[1]->decedents[0]->decedents[1]->lexeme,
+                                    "8",
+                                    inter->quiet
+                                ));
+                char * source_B = strdup(inter->anonymous);
+                nextLabel(inter);
+                
+                insertQuadruple(inter,createQuadruple(
+                    VECTOR_ACTIVATION,
+                    inter->anonymous,
+                    root->decedents[0]->lexeme,
+                    source_B,
+                    inter->quiet    
+                ));
+                root->lexeme = strdup(inter->anonymous);
+                nextLabel(inter);
+                free(source_B);
+                return;
+            }
+
+            //function activation
+            node * arguments = root->decedents[1]->decedents[0]->decedents[1];
+            for(size_t i = 0; i < arguments->decedent_amount; i++){
+                if(arguments->decedents[i]->token != ARGUMENT)
+                    continue;
+
+                insertQuadruple(inter,createQuadruple(
+                    ARGUMENT,
+                    arguments->decedents[i]->decedents[0]->lexeme,
+                    NULL,
+                    NULL,
+                    inter->quiet
+                ));
+            }
+
+            insertQuadruple(inter,createQuadruple(
+                FUNCTION_ACTIVATION,
+                inter->anonymous,
+                root->decedents[0]->lexeme,
+                NULL,
+                inter->quiet
+            ));
+
+            root->lexeme = strdup(inter->anonymous);
+            nextLabel(inter);
+            return;
+
+        }break;
+
         default:
             break;
     }

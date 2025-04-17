@@ -134,12 +134,16 @@ def configureDFA():
     MUL_DIV = chr(101)
     FACTOR = chr(102)
     ACTIVATION_DECISION = chr(103)
-    ARGS = chr(104)
+    VECTOR_ACTIVATION = chr(104)
+    FUNCTION_ACTIVATION = chr(105)
+    ARGUMENT_DECISION = chr(106)
+    ARGUMENT = chr(107)
     
-    OPTIONAL = chr(105)
-    REPETITION = chr(106)
+    IFF = chr(108)
+    LABEL = chr(109)
 
-
+    OPTIONAL = chr(110)
+    REPETITION = chr(111)
  
     _ARGUMENTS = [
         #C program executable
