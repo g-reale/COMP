@@ -25,4 +25,9 @@ run: all
 debug: all
 	./main 2> stderr.log || reset && cat stderr.log
 
-.PHONY: all clean run debug
+remake: clean
+	cd dgenerate && ./dgen.py
+	cd ggenerate && ./ggen.py
+	make all
+
+.PHONY: all clean run debug remake

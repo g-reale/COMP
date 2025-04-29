@@ -64,7 +64,7 @@ void traverseTree(node * root, size_t * depth){
     memset(ident,' ',*depth);
     ident[*depth] = '\0';
 
-    printf("%s%s",ident,STATE_NAMES[root->token-START]);
+    printf("%s%s[%s]",ident,STATE_NAMES[root->token-START],root->lexeme);
 
     if(root->decedent_amount){
         printf("(\n");

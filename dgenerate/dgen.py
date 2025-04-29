@@ -139,11 +139,17 @@ def configureDFA():
     ARGUMENT_DECISION = chr(106)
     ARGUMENT = chr(107)
     
-    IFF = chr(108)
-    LABEL = chr(109)
+    VOID_IF_BODY = chr(108)
+    VOID_ELSE_BODY = chr(109)
+    INT_IF_BODY = chr(110)
+    INT_ELSE_BODY = chr(111)
+    CONDITION = chr(112)
 
-    OPTIONAL = chr(110)
-    REPETITION = chr(111)
+    GOTO = chr(113)
+    LABEL = chr(114)
+
+    OPTIONAL = chr(115)
+    REPETITION = chr(116)
  
     _ARGUMENTS = [
         #C program executable

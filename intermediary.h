@@ -12,9 +12,15 @@ typedef struct intermediary{
     size_t anonymous_index;
     char * anonymous;
     int quiet;
+    size_t * declaration_stack;
+    size_t stack_size;
+    size_t top;
 }intermediary;
+
 
 intermediary * createIntermediary(parser * par, int quiet);
 void destroyIntermediary(intermediary * inter);
 void generate(intermediary * inter, node * root);
+void declare(intermediary * inter);
+void define(intermediary * inter);
 #endif
