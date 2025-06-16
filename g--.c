@@ -47,9 +47,9 @@ int main(int argc, char **argv){
         }
     }
     
-    scanner * scan = startScanner(argv[argc-1],quiet_scanner); 
-    semantis * tix = startSemantis(26 * 26,quiet_semantis);
-    parser * par = startParser(scan,tix,quiet_parser);
+    scanner * scan = createScanner(argv[argc-1],quiet_scanner); 
+    semantis * tix = createSemantis(26 * 26,quiet_semantis);
+    parser * par = createParser(scan,tix,quiet_parser);
     
     parse(par);
     int success = scan->success && par->success && tix->success;

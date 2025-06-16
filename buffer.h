@@ -64,7 +64,7 @@ typedef struct{
  * @param size  internal chunk size (if the size is smaller than the @ref buffer::halo the program exits with a error)
  * @return buffer* allocated buffer
  */
-buffer * startBuffer(char * path,size_t size);
+buffer * createBuffer(char * path,size_t size);
 /**
  * @brief Get the currently pointed char.<br>
  * Will @ref buffer::chunk chars from the file if needed.<br>

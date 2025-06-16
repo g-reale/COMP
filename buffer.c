@@ -5,7 +5,7 @@
 
 #include "buffer.h"
 
-buffer * startBuffer(char * path, size_t size){
+buffer * createBuffer(char * path, size_t size){
     
     //allocates
     buffer * b = (buffer*)malloc(sizeof(buffer));

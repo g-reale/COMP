@@ -21,7 +21,7 @@ void deleteEntry(entry * e){
     free(e);
 }
 
-void deleteDict(dictionary dict){
+void destroyDict(dictionary dict){
     for(size_t i = 0; i < dict.size; i++)
         deleteEntry(dict.page[i]);
     free(dict.page);

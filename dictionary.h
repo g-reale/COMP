@@ -18,7 +18,7 @@ typedef struct dictionary {
 } dictionary;
 
 dictionary createDict(size_t size, size_t (*mapping)(char * string, size_t));
-void deleteDict(dictionary dict);
+void destroyDict(dictionary dict);
 entry ** inDict(dictionary dic, char * name, int * found);
 void * getDict(dictionary dict, char * name, int * found);
 int insertDict(dictionary dict, char * name, void * value, void (*destructor)(void *));

@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-parser * startParser(scanner * s, semantis * tix, int quiet){
+parser * createParser(scanner * s, semantis * tix, int quiet){
     parser * p = (parser*)malloc(sizeof(parser));
     p->root = createNode(PROGRAM,NULL);
     p->tix = tix;

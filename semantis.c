@@ -1,10 +1,10 @@
 #include "semantis.h"
 
-semantis * startSemantis(size_t context_size, int quiet){
+semantis * createSemantis(size_t context_size, int quiet){
     semantis * s = (semantis*)malloc(sizeof(semantis));
     s->context_stack = (context**)malloc(sizeof(context*));
     s->context_size = context_size;
-    s->context_stack[0] = startContext(context_size,"root",0,quiet);
+    s->context_stack[0] = createContext(context_size,"root",0,quiet);
     s->top = 0;
 
     size_t index = hash("input",s->context_size);
@@ -43,13 +43,13 @@ void stackContext(semantis * s, int explicit, int anonymous){
     s->context_stack = (context**)realloc(s->context_stack,sizeof(context*) * (s->top + 2));
     
     if(!anonymous){
-        s->context_stack[s->top + 1] = startContext(s->context_size,s->lexeme,explicit,s->quiet);
+        s->context_stack[s->top + 1] = createContext(s->context_size,s->lexeme,explicit,s->quiet);
     }
     else{
         s->lexeme = (char*)realloc(s->lexeme,sizeof(char) * (strlen(s->context_stack[s->top]->name) + 2));
         strcpy(s->lexeme,s->context_stack[s->top]->name);
         strcat(s->lexeme,"_");
-        s->context_stack[s->top + 1] = startContext(s->context_size,s->lexeme,explicit,s->quiet);
+        s->context_stack[s->top + 1] = createContext(s->context_size,s->lexeme,explicit,s->quiet);
     }
     s->top++;
 }

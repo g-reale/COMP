@@ -56,7 +56,7 @@ typedef struct{
  * @param quiet if 0 print scanner progres
  * @return scanner* initialized scanner
  */
-scanner * startScanner(char * path, int quiet);
+scanner * createScanner(char * path, int quiet);
 /**
  * @brief Destroys a scanner
  * @param s scanner to destroy<br>

@@ -83,7 +83,7 @@ typedef struct{
  * @param quiet if set to 0 will print relevant information when destroyed
  * @return context* Newly created context
  */
-context * startContext(size_t size, char * name, int explicit, int quiet);
+context * createContext(size_t size, char * name, int explicit, int quiet);
 /**
  * @brief Destroys a context
  * 

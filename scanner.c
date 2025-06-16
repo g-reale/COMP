@@ -6,10 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-scanner * startScanner(char * path, int quiet){
+scanner * createScanner(char * path, int quiet){
     scanner * s = (scanner*)malloc(sizeof(scanner));
     s->lexeme = (char*)malloc(0);
-    s->program = startBuffer(path,1024); 
+    s->program = createBuffer(path,1024); 
     s->done = 0;
     s->success = 1;
     s->quiet = quiet;

@@ -109,7 +109,7 @@ typedef struct {
  * @param quiet if 0 print relevant information when a context is popped
  * @return semantis* initialized semantis
  */
-semantis * startSemantis(size_t context_size, int quiet);
+semantis * createSemantis(size_t context_size, int quiet);
 /**
  * @brief Destroys a semantis object
  * 

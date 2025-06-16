@@ -104,7 +104,7 @@ void destroyTree(node * root);
  * @brief Traverses a tree printing relevant information
  * 
  * @param root root of the tree
- * @param depth starting depth value 
+ * @param depth createing depth value 
  */
 void traverseTree(node * root, size_t * depth);
 /**
@@ -115,7 +115,7 @@ void traverseTree(node * root, size_t * depth);
  * @param quiet if 0 print relevant information before the parser's destruction
  * @return parser* initialized parser
  */
-parser * startParser(scanner * s, semantis * tix, int quiet);
+parser * createParser(scanner * s, semantis * tix, int quiet);
 /**
  * @brief Destroys a parser object
  * 

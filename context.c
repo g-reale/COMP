@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
-context * startContext(size_t size, char * name, int explicit, int quiet){
+context * createContext(size_t size, char * name, int explicit, int quiet){
 
     context * c = (context*)malloc(sizeof(context));
     c->name = (char*)malloc((strlen(name) + 1) * sizeof(char));
@@ -94,7 +94,7 @@ variable * insert(variable ** list, size_t * size, dfa_states type, char * lexem
         *list = (variable*)malloc(0);
     }
 
-    //start the new variable
+    //create the new variable
     variable v;    
     v.lexeme = (char*)malloc(sizeof(char) * (strlen(lexeme) + 1));
     strcpy(v.lexeme,lexeme);
