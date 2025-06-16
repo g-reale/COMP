@@ -3,13 +3,6 @@
 
 #include "states_dfa.h"
 
-// typedef enum{
-//     VOID_FUNCTION,
-//     INT_FUNCTION,
-//     SCALAR_ARGUMENT,
-//     VECTOR_ARGUMENT,
-// }pseudo_instucion;
-
 typedef struct quadruple{
     dfa_states instruction;
     char * destination;
