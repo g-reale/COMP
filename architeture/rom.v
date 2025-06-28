@@ -1,3 +1,5 @@
+`include "global.v"
+
 module rom
 (
 	input [`word_l] pointer,

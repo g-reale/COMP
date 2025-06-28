@@ -10,29 +10,30 @@ module alu(
 );
 
     always @* begin
+        result = 0;
+        nxtpc = currpc + 1;
+
         case (operator)
-            `ADD:  result = arg_a + arg_b;
-            `SUB:  result = arg_a - arg_b;
-            `MUL:  result = arg_a * arg_b;
-            `DIV:  result = arg_b != 0 ? arg_a / arg_b : 16'b0;
-            `AND:  result = arg_a & arg_b;
-            `OR:   result = arg_a | arg_b;
-            `NOR:  result = ~(arg_a | arg_b);
-            `XOR:  result = arg_a ^ arg_b;
-            `SFL:  result = arg_a << arg_b;
-            `SFR:  result = arg_a >> arg_b;
-            `LT:   result = (arg_a < arg_b);
-            `GT:   result = (arg_a > arg_b);
-            `EQ:   result = (arg_a == arg_b);
+            `ADD:   result = arg_a + arg_b;
+            `SUB:   result = arg_a - arg_b;
+            `MUL:   result = arg_a * arg_b;
+            `DIV:   result = (arg_b != 0) ? arg_a / arg_b : 0;
+            `LT:    result = (arg_a < arg_b);
+            `GT:    result = (arg_a > arg_b);
+            `LEQ:   result = (arg_a <= arg_b);
+            `GEQ:   result = (arg_a >= arg_b);
+            `EQ:    result = (arg_a == arg_b);
+            `NEQ:   result = (arg_a != arg_b);
+
+            `SET,
+            `SETDS,
+            `SETDDI,
+            `SETDD: result = arg_a;
+
+            `JMP: begin
+                result = arg_a != 0 ? currpc : 0;
+                nxtpc = (arg_a != 0) ? arg_b : currpc + 1;
+            end
         endcase
-
-        if (operator == `JMP && arg_a != 0) begin
-            nxtpc = arg_b;
-            result = currpc;
-        end else
-            nxtpc = currpc + 1;
     end
-
-
-
 endmodule

@@ -3,23 +3,31 @@
 `define SUB 1
 `define MUL 2
 `define DIV 3
-`define AND 4
-`define OR  5
-`define NOR 6
-`define XOR 7
-`define SFL 8 
-`define SFR 9
-`define LT  10
-`define GT  11
-`define EQ  12
-`define JMP 13
+`define LT  4
+`define GT  5
+`define LEQ 6
+`define GEQ 7
+`define EQ  8
+`define NEQ 9
+`define JMP  10 //if(ram[b]) ram[a] = pc; goto ram[c]
 
-`define WORD_LENGTH 64
+`define SET 12    // ram[a] = ram[b]
+`define SETDS 13  // ram[a] = ram[ram[b]]
+`define SETDD 14  // ram[ram[a]] = ram[b]
+`define SETDDI 15 // ram[ram[a]] = b
+
+`define WORD_LENGTH 34
 `define OP_LENGTH 4
-`define ARG_LENGTH 20 // (64 - 4)/3
-`define MEM_SIZE 1048576 //distribute remaining bits between 3 operands (2^20)
+`define ARG_LENGTH 10 // (34 - 4)/3
+`define MEM_SIZE 1024 // 2^10
 
-`define word_l 63:0
+`define word_l 33:0
 `define op_l 3:0
-`define arg_l 19:0
-`define mem_s 1048575:0
+`define arg_l 9:0
+`define mem_s 1023:0
+
+`define PC_ADDR 0
+`define SWITCH_ADDR 18
+`define DISP_ADDR 19
+
+`define DEBUG 1
