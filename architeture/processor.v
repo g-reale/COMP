@@ -162,9 +162,9 @@ module processor(
 
             INSTRUCTION_FETCH_2: begin
                 operator    <= read[`WORD_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH];
-                op_a        <= read[`WORD_LENGTH-`OP_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH];
-                op_b        <= read[`WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)];
-                op_c        <= read[`WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)-1 : `WORD_LENGTH-`OP_LENGTH-(3*`ARG_LENGTH)];
+                op_c        <= read[`WORD_LENGTH-`OP_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH];
+                op_a        <= read[`WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)];
+                op_b        <= read[`WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)-1 : `WORD_LENGTH-`OP_LENGTH-(3*`ARG_LENGTH)];
                 state       <= INSTRUCTION_FETCH_3;
             end
 

@@ -9,7 +9,7 @@
 `define GEQ 7
 `define EQ  8
 `define NEQ 9
-`define JMP  10 //if(ram[b]) ram[a] = pc; goto ram[c]
+`define JMP  10 //if(ram[a]) ram[c] = pc; goto ram[b]
 
 `define SET 12    // ram[a] = ram[b]
 `define SETDS 13  // ram[a] = ram[ram[b]]
