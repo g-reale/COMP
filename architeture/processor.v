@@ -18,12 +18,15 @@ module processor(
         output reg [`arg_l] op_a,
         output reg [`arg_l] op_b,
         output reg [`arg_l] op_c,
+		  output reg [`word_l] displaying,
         output reg [4:0] state = INSTRUCTION_FETCH,
         output reg [4:0] goto = 0,
+		  output reg [`word_l]query,
     `endif 
 
     input wire CLOCK_50,
     input wire [17:0] SW,
+	 input wire [3:0] KEY,
     output wire [6:0] HEX0,
     output wire [6:0] HEX1,
     output wire [6:0] HEX2,
@@ -41,17 +44,21 @@ module processor(
         assign clock = CLOCK_50;
     
     `else
-        reg clock;
-        reg [25:0] divider = 26'd0;
-        always @(posedge CLOCK_50) begin
-            if(divider == 26'd25000000) begin
-                clock <= !clock;
-                divider <= 0;
-            end else begin
-                divider <= divider + 1;
-            end
-        end
+    
+        wire clock;
+        assign clock = CLOCK_50;
         
+        //reg clock;
+        //reg [25:0] divider = 26'd0;
+        //always @(posedge CLOCK_50) begin
+        //    if(divider == 26'd3125000) begin //25000000
+        //        clock <= !clock;
+        //        divider <= 0;
+        //    end else begin
+        //        divider <= divider + 1;
+        //   end
+        //end
+		  
         reg read_clock;
         reg write_clock;
         reg [`arg_l] read_from;
@@ -67,8 +74,10 @@ module processor(
         reg [`arg_l] op_a;
         reg [`arg_l] op_b;
         reg [`arg_l] op_c;
+		  reg [`word_l] displaying;
         reg [4:0] state = INSTRUCTION_FETCH;
         reg [4:0] goto = 0;
+		  reg [`word_l]query;
     `endif
 
 
@@ -90,6 +99,19 @@ module processor(
         .nxtpc(nxtpc),
         .result(result)
     );
+	 
+	 ssd d(
+			.number(displaying),
+			.clock(clock),
+			.hex0(HEX0),
+			.hex1(HEX1),
+			.hex2(HEX2),
+			.hex3(HEX3),
+			.hex4(HEX4),
+			.hex5(HEX5),
+			.hex6(HEX6),
+			.hex7(HEX7)
+	 );
 
     localparam INSTRUCTION_FETCH                      = 0;
     localparam INSTRUCTION_FETCH_1                    = 1;
@@ -106,23 +128,44 @@ module processor(
     localparam SET                                    = 12;
     localparam DEFERENCE                              = 13;
     localparam DEFERENCE_1                            = 14;
-    localparam WRITE                                  = 15;
-    localparam WRITE_1                                = 16;
-    localparam WRITE_BACK                             = 17;
-    localparam WRITE_BACK_1                           = 18;
+	localparam DEFERENCE_2                            = 15;
+    localparam WRITE                                  = 16;
+    localparam WRITE_1                                = 17;
+    localparam WRITE_BACK                             = 18;
+    localparam WRITE_BACK_1                           = 19;
+    localparam SWICH_READ                             = 20;
 
 
     always @(posedge clock) begin
         case(state)
-            DEFERENCE: begin
-                read_clock <= 0;
-                state <= DEFERENCE_1;
+            
+			DEFERENCE: begin
+				case(read_from)
+					`SWITCH_ADDR: begin
+						query <= SW[16:0];
+						if(SW[17]) state <= SWICH_READ;
+				    end
+					 
+					default: begin
+						read_clock <= 0;
+						state <= DEFERENCE_1;
+					end
+				endcase
             end
 
             DEFERENCE_1: begin
                 read_clock <= 1;
-                state <= goto; 
+                 state <= DEFERENCE_2; 
             end
+				
+			DEFERENCE_2: begin
+				query <= read;
+				state <= goto; 
+			end
+			
+			SWICH_READ: begin
+			    if(SW[17] == 0) state <= goto;
+		    end
 
             WRITE: begin
                 write_clock <= 0;
@@ -135,9 +178,27 @@ module processor(
             end
 
             WRITE_BACK: begin
-                write <= result;
-                state <= WRITE;
-                goto <= WRITE_BACK_1;
+				
+					 case(write_into)
+						`PC_ADDR: begin
+							write <= result;
+							state <= WRITE;
+							goto <= INSTRUCTION_FETCH;
+						end
+						
+						`DISP_ADDR: begin
+							displaying <= result;
+							write <= result;
+							state <= WRITE;
+							goto	<= WRITE_BACK_1;
+						end
+						
+						default: begin
+							write <= result;
+							state <= WRITE;
+							goto	<= WRITE_BACK_1;
+						end
+					 endcase
             end
 
             WRITE_BACK_1: begin
@@ -154,17 +215,17 @@ module processor(
             end
 
             INSTRUCTION_FETCH_1: begin
-                currpc <= read;
-                read_from <= read;
+                currpc <= query;
+                read_from <= query;
                 state <= DEFERENCE;
                 goto <= INSTRUCTION_FETCH_2;
             end
 
             INSTRUCTION_FETCH_2: begin
-                operator    <= read[`WORD_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH];
-                op_c        <= read[`WORD_LENGTH-`OP_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH];
-                op_a        <= read[`WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)];
-                op_b        <= read[`WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)-1 : `WORD_LENGTH-`OP_LENGTH-(3*`ARG_LENGTH)];
+                operator    <= query[`WORD_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH];
+                op_c        <= query[`WORD_LENGTH-`OP_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH];
+                op_a        <= query[`WORD_LENGTH-`OP_LENGTH-`ARG_LENGTH-1 : `WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)];
+                op_b        <= query[`WORD_LENGTH-`OP_LENGTH-(2*`ARG_LENGTH)-1 : `WORD_LENGTH-`OP_LENGTH-(3*`ARG_LENGTH)];
                 state       <= INSTRUCTION_FETCH_3;
             end
 
@@ -203,27 +264,27 @@ module processor(
             end
 
             ARITHMETIC: begin
-                arg_a <= read;
+                arg_a <= query;
                 read_from <= op_b;
                 state <= DEFERENCE;
                 goto <= ARITHMETIC_1;
             end
 
             ARITHMETIC_1: begin
-                arg_b <= read;
+                arg_b <= query;
                 write_into <= op_c;
                 state <= WRITE_BACK;
             end
 
             SET_DEFERENCE_DESTINATION: begin
-                arg_a <= read;
+                arg_a <= query;
                 read_from <= op_c;
                 state <= DEFERENCE;
                 goto <= SET_DEFERENCE_DESTINATION_1;
             end
 
             SET_DEFERENCE_DESTINATION_1: begin
-                write_into <= read;
+                write_into <= query;
                 state <= WRITE_BACK;
             end
 
@@ -234,24 +295,25 @@ module processor(
             end
 
             SET_DEFERENCE_DESTINATION_IMMEDIATE_1: begin
-                write_into <= read;
+                write_into <= query;
                 state <= WRITE_BACK;
             end
 
             SET_DEFERENCE_SOURCE: begin
-                read_from <= read;
+                read_from <= query;
                 state <= DEFERENCE;
                 goto <= SET_DEFERENCE_SOURCE_1;
             end
 
             SET_DEFERENCE_SOURCE_1: begin
-                arg_a <= read;
+                arg_a <= query;
                 write_into <= op_c;
                 state <= WRITE_BACK;
             end
 
             SET: begin
-                arg_a <= read;
+                arg_a <= query;
+					 write_into <= op_c;
                 state <= WRITE_BACK;
             end
 

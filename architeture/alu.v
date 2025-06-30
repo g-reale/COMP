@@ -34,6 +34,8 @@ module alu(
                 result = arg_a != 0 ? currpc : 0;
                 nxtpc = (arg_a != 0) ? arg_b : currpc + 1;
             end
+				
+				default: result = 0;
         endcase
     end
 endmodule

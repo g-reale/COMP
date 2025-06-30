@@ -1,4 +1,3 @@
-//ALU INSTRUCTIONS
 `define ADD 0
 `define SUB 1
 `define MUL 2
@@ -30,4 +29,4 @@
 `define SWITCH_ADDR 18
 `define DISP_ADDR 19
 
-`define DEBUG 1
+//`define DEBUG 1
