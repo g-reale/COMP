@@ -3,30 +3,30 @@
 module processor(
     
     `ifdef DEBUG
-        output reg read_clock,
-        output reg write_clock,
-        output reg [`arg_l] read_from,
-        output reg [`arg_l] write_into,
-        output wire [`word_l] read,
-        output reg [`word_l] write,
-        output reg [`op_l] operator,
-        output reg [`word_l] arg_a,
-        output reg [`word_l] arg_b,
-        output reg [`word_l] currpc,
-        output wire [`word_l] nxtpc,
-        output wire [`word_l] result,
-        output reg [`arg_l] op_a,
-        output reg [`arg_l] op_b,
-        output reg [`arg_l] op_c,
-		  output reg [`word_l] displaying,
-        output reg [4:0] state = INSTRUCTION_FETCH,
-        output reg [4:0] goto = 0,
-		  output reg [`word_l]query,
+    output reg read_clock,
+    output reg write_clock,
+    output reg [`arg_l] read_from,
+    output reg [`arg_l] write_into,
+    output wire [`word_l] read,
+    output reg [`word_l] write,
+    output reg [`op_l] operator,
+    output reg [`word_l] arg_a,
+    output reg [`word_l] arg_b,
+    output reg [`word_l] currpc,
+    output wire [`word_l] nxtpc,
+    output wire [`word_l] result,
+    output reg [`arg_l] op_a,
+    output reg [`arg_l] op_b,
+    output reg [`arg_l] op_c,
+    output reg [`word_l] displaying,
+    output reg [4:0] state = INSTRUCTION_FETCH,
+    output reg [4:0] goto = 0,
+    output reg [`word_l]query,
     `endif 
 
     input wire CLOCK_50,
     input wire [17:0] SW,
-	 input wire [3:0] KEY,
+	input wire [3:0] KEY,
     output wire [6:0] HEX0,
     output wire [6:0] HEX1,
     output wire [6:0] HEX2,
@@ -40,44 +40,43 @@ module processor(
 
     // clock divider 
     `ifdef DEBUG
-        wire clock;
-        assign clock = CLOCK_50;
-    
+    wire clock;
+    assign clock = CLOCK_50;
+
     `else
+    wire clock;
+    assign clock = CLOCK_50;
     
-        wire clock;
-        assign clock = CLOCK_50;
+    //reg clock;
+    //reg [25:0] divider = 26'd0;
+    //always @(posedge CLOCK_50) begin
+    //    if(divider == 26'd3125000) begin //25000000
+    //        clock <= !clock;
+    //        divider <= 0;
+    //    end else begin
+    //        divider <= divider + 1;
+    //   end
+    //end
         
-        //reg clock;
-        //reg [25:0] divider = 26'd0;
-        //always @(posedge CLOCK_50) begin
-        //    if(divider == 26'd3125000) begin //25000000
-        //        clock <= !clock;
-        //        divider <= 0;
-        //    end else begin
-        //        divider <= divider + 1;
-        //   end
-        //end
-		  
-        reg read_clock;
-        reg write_clock;
-        reg [`arg_l] read_from;
-        reg [`arg_l] write_into;
-        wire [`word_l] read;
-        reg [`word_l] write;
-        reg [`op_l] operator;
-        reg [`word_l] arg_a;
-        reg [`word_l] arg_b;
-        reg [`word_l] currpc;
-        wire [`word_l] nxtpc;
-        wire [`word_l] result;
-        reg [`arg_l] op_a;
-        reg [`arg_l] op_b;
-        reg [`arg_l] op_c;
-		  reg [`word_l] displaying;
-        reg [4:0] state = INSTRUCTION_FETCH;
-        reg [4:0] goto = 0;
-		  reg [`word_l]query;
+    reg read_clock;
+    reg write_clock;
+    reg [`arg_l] read_from;
+    reg [`arg_l] write_into;
+    wire [`word_l] read;
+    reg [`word_l] write;
+    reg [`op_l] operator;
+    reg [`word_l] arg_a;
+    reg [`word_l] arg_b;
+    reg [`word_l] currpc;
+    wire [`word_l] nxtpc;
+    wire [`word_l] result;
+    reg [`arg_l] op_a;
+    reg [`arg_l] op_b;
+    reg [`arg_l] op_c;
+    reg [`word_l] displaying;
+    reg [4:0] state = INSTRUCTION_FETCH;
+    reg [4:0] goto = 0;
+    reg [`word_l]query;
     `endif
 
 
@@ -101,16 +100,16 @@ module processor(
     );
 	 
 	 ssd d(
-			.number(displaying),
-			.clock(clock),
-			.hex0(HEX0),
-			.hex1(HEX1),
-			.hex2(HEX2),
-			.hex3(HEX3),
-			.hex4(HEX4),
-			.hex5(HEX5),
-			.hex6(HEX6),
-			.hex7(HEX7)
+        .number(displaying),
+        .clock(clock),
+        .hex0(HEX0),
+        .hex1(HEX1),
+        .hex2(HEX2),
+        .hex3(HEX3),
+        .hex4(HEX4),
+        .hex5(HEX5),
+        .hex6(HEX6),
+        .hex7(HEX7)
 	 );
 
     localparam INSTRUCTION_FETCH                      = 0;
@@ -155,7 +154,7 @@ module processor(
 
             DEFERENCE_1: begin
                 read_clock <= 1;
-                 state <= DEFERENCE_2; 
+                state <= DEFERENCE_2; 
             end
 				
 			DEFERENCE_2: begin
@@ -313,7 +312,7 @@ module processor(
 
             SET: begin
                 arg_a <= query;
-					 write_into <= op_c;
+                write_into <= op_c;
                 state <= WRITE_BACK;
             end
 
