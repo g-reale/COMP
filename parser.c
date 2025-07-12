@@ -99,7 +99,7 @@ void parseRecursively(parser * p, node * root, dfa_states * production, size_t i
         //try to match
         else if(symbol != OPTIONAL && symbol != REPETITION){
             if(terminal == symbol){
-                analise(p->tix,terminal,p->scan->lexeme,p->scan->program->line);
+                // analise(p->tix,terminal,p->scan->lexeme,p->scan->program->line);
                 createDecedent(root,terminal,p->scan->lexeme);
             }
             else{

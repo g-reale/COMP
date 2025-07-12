@@ -11,7 +11,7 @@ intermediary * createIntermediary(parser * par, int quiet){
         .code_size = 0,
         .root = par->root,
         .anonymous_index = 0,
-        .anonymous = (char*)malloc(sizeof(char) * 4),
+        .anonymous = (char*)malloc(sizeof(char) * 5),
         .quiet = quiet,
         .declaration_stack = (size_t *)malloc(sizeof(size_t)),
         .stack_size = 0,
@@ -19,7 +19,7 @@ intermediary * createIntermediary(parser * par, int quiet){
     };
 
     *inter = aux;
-    strcpy(inter->anonymous,"t_0");
+    strcpy(inter->anonymous,"_t_0");
     return inter;
 }
 
@@ -63,11 +63,12 @@ void generate(intermediary * inter, node * root){
 
     switch (root->token){
         
-        //declare a variable or function start
+        //declare a variable or function start        
+        case VAR_DECL:
         case DECLARATION:{
             char * identifier = root->decedents[1]->lexeme;
             dfa_states instruction = VOID_FUN_DECL;
-            if(root->decedents[2]->token == DECLARATION_DECISION)
+            if(root->decedents[2]->token == DECLARATION_DECISION || root->decedents[2]->token == VAR_DECISION)
                 instruction = root->decedents[2]->decedents[0]->token;
             
             char * size = instruction == VEC_DECL ? root->decedents[2]->decedents[0]->decedents[1]->lexeme : NULL;

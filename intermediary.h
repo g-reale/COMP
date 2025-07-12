@@ -4,7 +4,6 @@
 #include "quadruple.h"
 #include "parser.h"
 
-
 typedef struct intermediary{
     quadruple * pseudo_asm;
     size_t code_size;

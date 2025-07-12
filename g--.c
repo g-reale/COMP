@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "scanner.h"
 #include "semantis.h"
+#include "assembler.h"
 #include "intermediary.h"
 
 #include <stdio.h>
@@ -56,10 +57,13 @@ int main(int argc, char **argv){
 
     if(success){
         intermediary * inter = createIntermediary(par,quiet_intermediary);
+        assembler ass = createAssembler(inter);
+        
         generate(inter,inter->root);
-        destroyIntermediary(inter);
+        assemble(&ass);
+        destroyAssembler(&ass);
     }
-
+    
     destroyParser(par);
     return !success;
 }

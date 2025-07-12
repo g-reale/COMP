@@ -1,54 +1,63 @@
 #include "stack.h"
+#include <stdlib.h>
+#include <stdio.h>
 
-stack createStack(void (*destructor)(void *)) {
+stack createStack(){
     stack s = {
-        .stack = (void **)malloc(sizeof(void *) * INITIAL_CAPACITY),
-        .destructor = destructor,
+        .stack = (entry_t*) malloc(sizeof(entry_t) * INITIAL_CAPACITY),
+        .capacity = INITIAL_CAPACITY,
         .height = 0,
-        .at = 0,
-        .capacity = INITIAL_CAPACITY
+        .at = 1,
     };
+
     return s;
 }
 
-void destroyStack(stack * s) {
-    for (size_t i = 0; i < s->height; i++)
-        s->destructor(s->stack[i]);
-
+void destroyStack(stack * s){
     free(s->stack);
     s->stack = NULL;
-    s->height = 0;
-    s->capacity = 0;
-    s->at = 0;
 }
 
-void push(stack * s, void * value) {
-    if (s->height == s->capacity) {
+void push(stack * s, entry_t e){
+    
+    //reallocate memory if needed
+    if(s->height == s->capacity){
         s->capacity *= 2;
-        s->stack = realloc(s->stack, sizeof(void *) * s->capacity);
+        s->stack = realloc(s->stack, sizeof(entry_t) * s->capacity);
     }
-    s->stack[s->height++] = value;
+    s->stack[s->height] = e;
+    // printf("pushing: %ld\n",s->stack[s->height].entry.address);
+    s->height++;
 }
 
-void * pop(stack * s) {
-    if (s->height == 0)
-        return NULL;
+entry_t pop(stack * s, int * botton){
+    
+    if(s->height == 0){
+        *botton = 1;
+        return s->stack[0];
+    }
 
-    void *data = s->stack[--s->height];
-    return data;
+    *botton = 0;
+    entry_t e = s->stack[s->height-1];
+    // printf("poping: %ld\n",s->stack[s->height-1].entry.address);
+    s->height--;
+    return e;
 }
 
-void reset(stack * s) {
-    s->at = s->height;
+entry_t next(stack * s, int * botton){
+
+    if(s->height < s->at){
+        *botton = 1;
+        return s->stack[0];
+    }
+
+    *botton = 0;
+    entry_t e = s->stack[s->height - s->at];
+    // printf("traversing: %ld\n",s->stack[s->height - s->at].entry.address);
+    s->at++;
+    return e;
 }
 
-void * next(stack * s) {
-    if (s->at == 0)
-        return NULL;
-
-    return s->stack[--s->at];
-}
-
-void * top(stack * s){
-    return s->stack[s->height-1];
+void reset(stack * s){
+    s->at = 1;
 }

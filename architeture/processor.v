@@ -47,16 +47,16 @@ module processor(
     wire clock;
     assign clock = CLOCK_50;
     
-    //reg clock;
-    //reg [25:0] divider = 26'd0;
-    //always @(posedge CLOCK_50) begin
-    //    if(divider == 26'd3125000) begin //25000000
-    //        clock <= !clock;
-    //        divider <= 0;
-    //    end else begin
-    //        divider <= divider + 1;
-    //   end
-    //end
+//    reg clock;
+//    reg [25:0] divider = 26'd0;
+//    always @(posedge CLOCK_50) begin
+//        if(divider == 26'd25000000) begin //25000000
+//            clock <= !clock;
+//            divider <= 0;
+//        end else begin
+//            divider <= divider + 1;
+//       end
+//    end
         
     reg read_clock;
     reg write_clock;
@@ -79,7 +79,6 @@ module processor(
     reg [`word_l]query;
     `endif
 
-
     ram r(
         .data(write),
         .q(read),
@@ -101,7 +100,7 @@ module processor(
 	 
 	 ssd d(
         .number(displaying),
-        .clock(clock),
+        .clock(CLOCK_50),
         .hex0(HEX0),
         .hex1(HEX1),
         .hex2(HEX2),
@@ -142,6 +141,7 @@ module processor(
 				case(read_from)
 					`SWITCH_ADDR: begin
 						query <= SW[16:0];
+						displaying <= SW[16:0];
 						if(SW[17]) state <= SWICH_READ;
 				    end
 					 
@@ -163,6 +163,7 @@ module processor(
 			end
 			
 			SWICH_READ: begin
+				 displaying <= 0;
 			    if(SW[17] == 0) state <= goto;
 		    end
 
@@ -176,28 +177,27 @@ module processor(
                 state <= goto;
             end
 
-            WRITE_BACK: begin
-				
-					 case(write_into)
-						`PC_ADDR: begin
-							write <= result;
-							state <= WRITE;
-							goto <= INSTRUCTION_FETCH;
-						end
-						
-						`DISP_ADDR: begin
-							displaying <= result;
-							write <= result;
-							state <= WRITE;
-							goto	<= WRITE_BACK_1;
-						end
-						
-						default: begin
-							write <= result;
-							state <= WRITE;
-							goto	<= WRITE_BACK_1;
-						end
-					 endcase
+            WRITE_BACK: begin			
+                case(write_into)
+                    `PC_ADDR: begin
+                        write <= result;
+                        state <= WRITE;
+                        goto <= INSTRUCTION_FETCH;
+                    end
+                    
+                    `DISP_ADDR: begin
+                        displaying <= result;
+                        write <= result;
+                        state <= WRITE;
+                        goto	<= WRITE_BACK_1;
+                    end
+                    
+                    default: begin
+                        write <= result;
+                        state <= WRITE;
+                        goto	<= WRITE_BACK_1;
+                    end
+                endcase
             end
 
             WRITE_BACK_1: begin
