@@ -7,13 +7,14 @@
 typedef struct intermediary{
     quadruple * pseudo_asm;
     size_t code_size;
-    const node * root;
+    node * root;
     size_t anonymous_index;
     char * anonymous;
     int quiet;
     size_t * declaration_stack;
     size_t stack_size;
     size_t top;
+    parser * p;
 }intermediary;
 
 

@@ -16,6 +16,7 @@ typedef struct dictionary{
     dict_t * arena;
     size_t height;
     size_t capacity;
+    stack leafs;
 }dictionary;
 
 dictionary createDict();
@@ -23,4 +24,6 @@ void destroyDict(dictionary * d);
 entry_t queryDict(dictionary * d, char * name, int * found, size_t root, size_t * leaf);
 int insertDict(dictionary * d, char * name, entry_t e, size_t root, size_t * leaf);
 void traverseDict(dictionary * d, size_t root);
+entry_t nextDict(dictionary * d, int * bottom);
+void resetDict(dictionary * d);
 #endif

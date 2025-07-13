@@ -1,17 +1,32 @@
+#include "intermediary.h"
 #include "assembler.h"
 #include <ctype.h>
 
-assembler createAssembler(intermediary * i){
+assembler createAssembler(char * path, intermediary * i, int quiet){
+    
+    //call intermediary before anything
+    generate(i,i->root);
+    
+    //open output file
+    FILE * fid = fopen(path,"w");
+    if(fid == NULL){
+        fprintf(stderr,"ERRO: arquivo %s não encontrado\n",path);
+        destroyIntermediary(i);
+        exit(1);
+    }
+
     assembler a = {
         .varmap = createDict(),
         .context = createStack(),
         .inter = i,
         .varat = CONSTANT_MEMORY_START,
         .progat = 0,
+        .quiet = quiet,
+        .out = fid
     };
-
-    // DMA variables
     push(&a.context,(entry_t){.type = CONTEXT, .data = (data_t){.value = 0}});
+    
+    // Hardware registers
     insertDict(&a.varmap,"DISPADDR",(entry_t){.type = CONSTANT, .data = (data_t){.address = DISP_ADDR, .size = 1, .value = 0}},0,NULL);
     insertDict(&a.varmap,"SWICHADDR",(entry_t){.type = CONSTANT, .data = (data_t){.address = SWITCH_ADDR, .size = 1, .value = 0}},0,NULL);
     return a;
@@ -21,23 +36,32 @@ entry_t traverseContexts(assembler * a, char * name, size_t * leaf){
     int bottom = 0;
     int found = 0;
 
-    // printf("searching %s\n",name);
-
     entry_t match;
     reset(&a->context);
     while(!bottom && !found){
         entry_t context = next(&a->context,&bottom);
-        // printf("\ttring context %ld",context.data.value);
         match = queryDict(&a->varmap,name,&found,context.data.value,leaf);
-        // printf(" got %d\n",found);
     }
-    // printf("match results: %d %ld %ld %ld %ld\n\n",match.type,match.data.address, match.data.size, match.data.value, leaf ? *leaf : 0);
     return match;
+}
+
+void writeBinary(assembler * a){
+    for(size_t i = 0; i < a->varat; i++)
+        fprintf(a->out,"ram[%ld] = %ld;\n",i,a->memory[i]);
+    
+    for(size_t i = 0; i < a->progat; i++){
+        ins_t instruction = a->assembly[i];
+        size_t value = ((size_t)(instruction.instruction) << 30U) + (instruction.destination << 20U) + (instruction.source_A << 10U) + instruction.source_B;
+        fprintf(a->out,"ram[%ld] = %ld;\n",i + a->varat,value);
+    }
+
+    // for(size_t i = a->progat + a->varat; i < MEMORY_SIZE; i++)
+    //     fprintf(a->out,"0\n");
 }
 
 void assemble(assembler * a){
 
-    //first pass solve memory adresses
+    //first pass solve memory addresses
     //registering addresses and allocating space by quadruple type
     for(size_t i = 0; i < a->inter->code_size; i++){
         quadruple quad = a->inter->pseudo_asm[i];
@@ -102,9 +126,25 @@ void assemble(assembler * a){
                 a->varat++;
             }break;
 
-            case RETURN:
-                a->progat += 3;
-            [[fallthrough]];
+            //returning form a function
+            case RETURN:{
+                if(quad.destination != NULL && !isalpha(quad.destination)){
+                    int digit = isdigit(quad.destination);
+                    a->varat += insertDict(&a->varmap,quad.destination,
+                                (entry_t){
+                                    .type = digit ? CONSTANT : VARIABLE, 
+                                    .data = {
+                                        .address = a->varat, 
+                                        .size = 1, 
+                                        .value = digit ? (size_t)strtoull(quad.destination, NULL, 10) : 0
+                                    }
+                                },
+                                digit ? 0 : a->context.top.data.value, NULL);
+                    }
+                a->progat += 4;
+            }break;
+
+            //dirty work instructions
             case EQUAL:
             case MUL:
             case DIV:
@@ -116,21 +156,33 @@ void assemble(assembler * a){
             case SUB:
             case LOGICAL_EQ:{
                 char * names[3] = {quad.destination,quad.source_A,quad.source_B};
+
                 for(size_t i = 0; i < 3; i++){
-                    if(names[i] != NULL && !isalpha(names[i][0])){
+                    
+                    //names can be empty for some of the opcodes
+                    if(names[i] == NULL)
+                        continue;
+                    
+                    //insert constants and implicit variables 
+                    if(!isalpha(names[i][0])){
                         int digit = isdigit(names[i][0]);
                         a->varat += insertDict(&a->varmap,names[i],
-                                    (entry_t){
-                                        .type = digit ? CONSTANT : VARIABLE, 
-                                        .data = {
-                                            .address = a->varat, 
-                                            .size = 1, 
-                                            .value = digit ? (size_t)strtoull(names[i], NULL, 10) : 0
-                                        }
-                                    },
-                                    digit ? 0 : a->context.top.data.value, NULL);
+                            (entry_t){
+                                .type = digit ? CONSTANT : VARIABLE, 
+                                .data = {
+                                    .address = a->varat, 
+                                    .size = 1, 
+                                    .value = digit ? (size_t)strtoull(names[i], NULL, 10) : 0
+                                }
+                            },
+                            digit ? 0 : a->context.top.data.value, NULL);
                     }
+                    
+                    //allocate a extra instruction for each vector detected
+                    a->progat += traverseContexts(a,names[i],NULL).type == VECTOR;
                 }
+
+                //always allocate at least one space for the main operation
                 a->progat++;
             }break;
 
@@ -150,6 +202,7 @@ void assemble(assembler * a){
                 a->progat+=2;
             }break;
 
+            //allocate space for a function call and insert it's return variable in the dict
             case FUNCTION_ACTIVATION:
                 insertDict(&a->varmap,quad.destination,
                 (entry_t){.type = VARIABLE, .data = {
@@ -182,7 +235,15 @@ void assemble(assembler * a){
 
             //allocate space for a vector activation
             case VECTOR_ACTIVATION:
-                a->progat += 3;
+                a->varat += insertDict(&a->varmap,quad.destination,
+                    (entry_t){.type = VECTOR, 
+                                .data = {
+                                    .address = a->varat,
+                                    .size = 1,
+                                    .value = 0
+                                }
+                        },a->context.top.data.value,NULL);
+            a->progat += 2;
             break;
 
             default:
@@ -190,6 +251,14 @@ void assemble(assembler * a){
         }
     }
 
+    //verify memory constrains
+    size_t occupancy = a->progat + a->varat + CALLSTACK_SIZE + ARGUMENT_STACK_SIZE;
+    if(MEMORY_SIZE < occupancy){
+        fprintf(stderr,"assembler: program too big! (%ld/%d)\n",occupancy,MEMORY_SIZE);
+        exit(1);
+    }
+
+    //allocate space for the assembly now that we know it's size
     a->assembly = (ins_t*)calloc(sizeof(ins_t),a->progat);
 
     //second pass convert to instructions using resolved addresses
@@ -240,6 +309,7 @@ void assemble(assembler * a){
                 };
                 j++;
                 
+                //closing the context
                 pop(&a->context,NULL);
             }break;
 
@@ -250,7 +320,7 @@ void assemble(assembler * a){
                 //opening context
                 if(quad.destination){
                     size_t leaf;
-                    entry_t context = traverseContexts(a,quad.destination,&leaf);
+                    traverseContexts(a,quad.destination,&leaf);
                     push(&a->context,(entry_t){.type = CONTEXT, .data = (data_t){.value = leaf}});
                     break;
                 }
@@ -280,14 +350,44 @@ void assemble(assembler * a){
                          quad.instruction == SUM ? ASM_ADD :
                          quad.instruction == SUB ? ASM_SUB :
                          ASM_EQ;
+
+                entry_t sources[2] = {traverseContexts(a,quad.source_A,NULL),traverseContexts(a,quad.source_B,NULL)};
+                size_t targets[2] = {sources[0].data.address,sources[1].data.address};
                 
+                //deference each source vector
+                for(size_t k = 0; k < 2; k++){
+                    if(sources[k].type == VECTOR){
+                        a->assembly[j] = (ins_t){
+                            .instruction = ASM_SETDS,
+                            .destination = VEC_DEF_ADDR_A + k,
+                            .source_A = targets[k],
+                        };
+                        targets[k] = VEC_DEF_ADDR_A + k;
+                        j++;
+                    }
+                }
+
+                entry_t destination = traverseContexts(a,quad.destination,NULL);
+                
+                //calculate the operation, store directly on destination if scalar, store on misc register if vector
                 a->assembly[j] = (ins_t){
                     .instruction = opcode,
-                    .destination = traverseContexts(a,quad.destination,NULL).data.address,
-                    .source_A = traverseContexts(a,quad.source_A,NULL).data.address,
-                    .source_B = traverseContexts(a,quad.source_B,NULL).data.address,
+                    .destination = destination.type != VECTOR ? destination.data.address : MISC_REGISTER_ADDR,
+                    .source_A = targets[0],
+                    .source_B = targets[1],
                 };
                 j++;
+
+                //destination is vector copy the result to the pointed position
+                if(destination.type == VECTOR){
+                    a->assembly[j] = (ins_t){
+                        .instruction = ASM_SETDD,
+                        .destination = destination.data.address,
+                        .source_A = MISC_REGISTER_ADDR,
+                    };
+                    j++;
+                }
+
             } break;
 
             //copy a value to the return register and terminate the function
@@ -455,19 +555,11 @@ void assemble(assembler * a){
 
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_ADD,
-                    .destination = MISC_REGISTER_ADDR,
+                    .destination = traverseContexts(a,quad.destination,NULL).data.address,
                     .source_A = MISC_REGISTER_ADDR,
                     .source_B = traverseContexts(a,quad.source_B,NULL).data.address,
                 };
                 j++;
-
-                a->assembly[j] = (ins_t){
-                    .instruction = ASM_SETDS,
-                    .destination = traverseContexts(a,quad.destination,NULL).data.address,
-                    .source_A = MISC_REGISTER_ADDR
-                };
-                j++;
-
             }break;
 
             default:
@@ -478,70 +570,49 @@ void assemble(assembler * a){
     
     //layout constant memory
     a->memory = (size_t *)calloc(sizeof(size_t),a->varat);
-    for(size_t i = 0; i < a->varmap.height; i++){
-        if(a->varmap.arena[i].filled){
-            entry_t variable = a->varmap.arena[i].entry;
-            a->memory[variable.data.address] = variable.data.value;
-        }
+    int bottom = 0;
+    resetDict(&a->varmap);
+    while (!bottom){
+        entry_t variable = nextDict(&a->varmap,&bottom);
+        if(variable.type == CONTEXT)
+            continue;
+        a->memory[variable.data.address] = variable.data.value;
     }
     a->memory[PC_ADDR] = queryDict(&a->varmap,"main",NULL,0,NULL).data.value;
+    a->memory[ARG_STACK_ADDR] = a->progat + a->varat;
+    a->memory[CALL_STACK_ADDR] = a->progat + a->varat + ARGUMENT_STACK_SIZE;
+
+    writeBinary(a);
 }
 
 void destroyAssembler(assembler * a){
     
-    traverseDict(&a->varmap,0);
-    printf("\nPMEM @ %ld\n",a->varat);
-    
-    for(size_t i = 0; i < a->varat; i++)
-        printf("%ld: %ld\n",i,a->memory[i]);
-
-    char opcode_names[16][32] = {
-        "ASM_ADD",
-        "ASM_SUB",
-        "ASM_MUL",
-        "ASM_DIV",
-        "ASM_FJMP",
-        "ASM_LT",
-        "ASM_GT",
-        "ASM_LEQ",
-        "ASM_GEQ",
-        "ASM_EQ",
-        "ASM_NEQ",
-        "ASM_SET",
-        "ASM_SETDS",
-        "ASM_SETDD",
-        "ASM_SETDDI",
-        "ASM_SETI"
-    };
-
-    char reserved_addresses_names[16][64] = {
-        "PC",
-        "A_STACK",
-        "C_STACK",
-        "ONE",
-        "THREE",
-        "MISC_R",
-        "RET_R",
-        "DISP_ADDR",
-        "SWICH_ADDR"
-    };
-    
-    for(size_t i = 0; i < a->progat; i++){
-        printf("%ld: %s(%ld)\t",i + a->varat, opcode_names[a->assembly[i].instruction],a->assembly[i].instruction);
-        size_t addresses[3] = {a->assembly[i].destination,a->assembly[i].source_A,a->assembly[i].source_B};
-        for(size_t j = 0; j < 3; j++){
-
-            if(j == 2 && ASM_NEQ < a->assembly[i].instruction)
-                continue;
-
-            if(addresses[j] < CONSTANT_MEMORY_START)
-                printf("%s(%ld)\t",reserved_addresses_names[addresses[j]],addresses[j]);
-            else
-                printf("%ld\t",addresses[j]);
+    if(!a->quiet){
+        printf("VARIABLE MAP:\n");
+        traverseDict(&a->varmap,0);
+        printf("\nPMEM @ %ld DUPING VARMEM\n",a->varat);
+        for(size_t i = 0; i < a->varat; i++)
+            printf("%ld: %ld\n",i,a->memory[i]);
+        printf("\nDUPING PMEM\n");
+        
+        char OPCODE_NAMES[16][32] = {"ASM_ADD","ASM_SUB","ASM_MUL","ASM_DIV","ASM_FJMP","ASM_LT","ASM_GT","ASM_LEQ","ASM_GEQ","ASM_EQ","ASM_NEQ","ASM_SET","ASM_SETDS","ASM_SETDD","ASM_SETDDI","ASM_SETI"};
+        char RESERVED_NAMES[16][64] = {"PC","A_STACK","C_STACK","ONE","THREE","MISC_R","RET_R","DISP_ADDR","SWICH_ADDR","DEF_VEC_A","DEF_VEC_B"};
+        
+        for(size_t i = 0; i < a->progat; i++){
+            printf("%ld: %s(%d)\t",i + a->varat, OPCODE_NAMES[a->assembly[i].instruction],a->assembly[i].instruction);
+            size_t addresses[3] = {a->assembly[i].destination,a->assembly[i].source_A,a->assembly[i].source_B};
+            for(size_t j = 0; j < 3; j++){
+                if(j == 2 && ASM_NEQ < a->assembly[i].instruction)
+                    continue;
+                if(addresses[j] < CONSTANT_MEMORY_START)
+                    printf("%s(%ld)\t",RESERVED_NAMES[addresses[j]],addresses[j]);
+                else
+                    printf("%ld\t",addresses[j]);
+            }
+            printf("\n");
         }
         printf("\n");
     }
-    printf("\n");
 
     destroyIntermediary(a->inter);
     destroyDict(&a->varmap);
@@ -549,81 +620,3 @@ void destroyAssembler(assembler * a){
     free(a->assembly);
     free(a->memory);
 }
-
-
-// // size_t mapping(char * name, size_t size){
-// //     size_t i = 0;
-// //     size_t index = 0;
-// //     size_t step = 1;
-
-// //     while(name[i] != '\0'){
-// //         index += name[i] * step;
-// //         step *= 26;
-// //         i++;
-// //     }
-
-// //     return index % size;
-// // }
-
-// // void destructor(void * value){
-// //     dictionary dict = *((dictionary*)value);
-// //     destroyDict(dict);
-// // }
-
-// // assembler createAssembler(intermediary * i, size_t ram_size, size_t rom_size){
-// //     assembler a = {
-// //         .inter = i,
-// //         .ram_context = createStack(destructor),
-// //         .ram_address = 0,
-// //         .ram_map = (uint64_t*)calloc(ram_size, sizeof(uint64_t)),
-// //         .ram_size = ram_size
-// //     };
-
-// //     //create main context latter
-
-// //     return a;
-// // }
-
-// // void deleteAssembler(assembler a){
-// //     destroyIntermediary(a.inter);
-// //     destroyStack(&a.ram_context);
-// // }
-
-// // void assemble(assembler * a){
-// //     for(size_t i = 0; i < a->inter->code_size; i++){
-// //         quadruple quad = a->inter->pseudo_asm[i];
-        
-// //         switch (quad.instruction){
-            
-// //             //allocate space for a new variable 
-// //             case SCALAR_DECL:
-// //             case VEC_DECL:{
-// //                 void * address = (void*)malloc(sizeof(size_t));
-// //                 *(size_t *)address = a->ram_address;
-// //                 a->ram_address += quad.instruction == VEC_DECL ? (size_t)strtoull(quad.source_A, NULL, 10) : 1;
-// //                 dictionary dict = *((dictionary*)top(&a->ram_context));
-// //                 insertDict(dict,quad.destination,address,free);
-// //             }
-// //             break;
-
-// //             //push or pop context
-// //             case INT_FUN_DECL:
-// //             case VOID_FUN_DECL:{
-                
-// //                 //pop context
-// //                 if(quad.destination == NULL){
-// //                     pop(&a->ram_context);
-// //                     break;
-// //                 }
-                
-// //                 //push context
-// //                 dictionary * new_ctx = malloc(sizeof(dictionary));
-// //                 *new_ctx = createDict(512,mapping);
-// //                 push(&a->ram_context,new_ctx);
-// //             }
-// //             break;
-
-            
-// //         }
-// //     }
-// // }

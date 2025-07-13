@@ -103,7 +103,7 @@ void parseRecursively(parser * p, node * root, dfa_states * production, size_t i
                 createDecedent(root,terminal,p->scan->lexeme);
             }
             else{
-                printf("ERRO SINTÁTICO: \"%s\" INVALIDO LINHA: %ld, COLUNA: %ld \n",STATE_NAMES[terminal-START],p->scan->program->line,p->scan->program->column);
+                fprintf(stderr,"ERRO SINTÁTICO: \"%s\" INVALIDO LINHA: %ld, COLUNA: %ld \n",STATE_NAMES[terminal-START],p->scan->program->line,p->scan->program->column);
                 p->success = 0;
             }
             terminal = getToken(p->scan);

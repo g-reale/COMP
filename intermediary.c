@@ -15,7 +15,8 @@ intermediary * createIntermediary(parser * par, int quiet){
         .quiet = quiet,
         .declaration_stack = (size_t *)malloc(sizeof(size_t)),
         .stack_size = 0,
-        .top = 0
+        .top = 0,
+        .p = par,
     };
 
     *inter = aux;
@@ -47,6 +48,7 @@ void nextLabel(intermediary * inter){
 void destroyIntermediary(intermediary * inter){
     for(size_t i = 0; i < inter->code_size; i++)
         destroyQuadruple(inter->pseudo_asm[i]);
+    destroyParser(inter->p);
     free(inter->declaration_stack);
     free(inter->pseudo_asm);
     free(inter->anonymous);

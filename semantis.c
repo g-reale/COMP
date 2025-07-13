@@ -31,7 +31,7 @@ semantis * createSemantis(size_t context_size, int quiet){
 
 void destroySemantis(semantis * s){
     if(!s->main_declared)
-        printf("ERRO SEMANTICO: main não foi declarada\n");
+        fprintf(stderr,"ERRO SEMANTICO: main não foi declarada\n");
     for(size_t i = 0; i <= s->top; i++)
         destroyContext(s->context_stack[i]);
     free(s->context_stack);
@@ -60,7 +60,7 @@ void popContext(semantis * s, size_t line){
     
     int returned = s->context_stack[s->top]->returned;
     if(!returned && s->context_stack[s->top]->explicit){
-        printf("ERRO SEMANTICO: função inteira \"%s\" encerra sem retorno LINHA: %ld\n",
+        fprintf(stderr,"ERRO SEMANTICO: função inteira \"%s\" encerra sem retorno LINHA: %ld\n",
         s->context_stack[s->top]->name,
         line
     );
@@ -82,7 +82,7 @@ variable * declareVar(semantis * s, size_t line){
     variable * var;
 
     if(isUnique(*list,*size,s->lexeme) != NULL){
-        printf("ERRO SEMANTICO: simbolo \"%s\" já foi declarado nesse contexto LINHA: %ld\n",s->lexeme,line);
+        fprintf(stderr,"ERRO SEMANTICO: simbolo \"%s\" já foi declarado nesse contexto LINHA: %ld\n",s->lexeme,line);
         s->success = 0;
         return NULL;
     }
@@ -93,13 +93,13 @@ variable * declareVar(semantis * s, size_t line){
     if(s->category == OPEN_ROUND){
 
         if(s->main_declared){
-            printf("ERRO SEMANTICO: funcão \"%s\" declarada após a main LINHA: %ld\n",s->lexeme,line);
+            fprintf(stderr,"ERRO SEMANTICO: funcão \"%s\" declarada após a main LINHA: %ld\n",s->lexeme,line);
             s->success = 0;
         }
 
         if(index == main_hash && strcmp(s->lexeme,"main") == 0){
             if(s->type != VOID){
-                printf("ERRO SEMANTICO: função main deve retornar void LINHA: %ld\n",line);
+                fprintf(stderr,"ERRO SEMANTICO: função main deve retornar void LINHA: %ld\n",line);
                 s->success = 0;
             }
             s->main_declared = 1;
@@ -125,7 +125,7 @@ variable * searchVar(semantis * s, size_t line){
     }
 
     if(var == NULL){
-        printf("ERRO SEMANTICO: simbolo \"%s\" utilizado mas nunca declarado LINHA: %ld\n",s->lexeme,line);
+        fprintf(stderr,"ERRO SEMANTICO: simbolo \"%s\" utilizado mas nunca declarado LINHA: %ld\n",s->lexeme,line);
         s->success = 0;
         return NULL;
     }

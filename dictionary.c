@@ -7,6 +7,7 @@ dictionary createDict() {
         .arena = (dict_t*) calloc(INITIAL_CAPACITY, sizeof(dict_t)),
         .height = 0,
         .capacity = INITIAL_CAPACITY,
+        .leafs = createStack(),
     };
     d.arena[0] = (dict_t){0};
     d.height = 1;
@@ -50,8 +51,6 @@ int insertDict(dictionary* d, char* name, entry_t e, size_t root, size_t * leaf)
     size_t i;
     unsigned char letter;
 
-    // printf("inserting: %s from: %ld... ", name, root);
-
     for (i = 0; (letter = (unsigned char)name[i]) != '\0'; i++){
         uint64_t mask = letter >> 6;
         uint64_t bit  = letter & 63;
@@ -63,17 +62,16 @@ int insertDict(dictionary* d, char* name, entry_t e, size_t root, size_t * leaf)
         root = (d->arena + root)->decedents[letter];
     }
 
-    if (letter == '\0' && (d->arena + root)->filled){
-        // printf("failled\n");
+    if (letter == '\0' && (d->arena + root)->filled)
         return 0;
-    }
 
     if (letter == '\0'){
         if(leaf)
             *leaf = root;
+        
+        push(&d->leafs,(entry_t){.data = {.address = root}});
         (d->arena + root)->entry = e;
         (d->arena + root)->filled = 1;
-        // printf("leaf: %ld\n",root);
         return 1;
     }
 
@@ -96,9 +94,10 @@ int insertDict(dictionary* d, char* name, entry_t e, size_t root, size_t * leaf)
 
     if(leaf)
         *leaf = root;
+
+    push(&d->leafs,(entry_t){.data = {.address = root}});
     (d->arena + root)->entry = e;
     (d->arena + root)->filled = 1;
-    // printf("leaf: %ld\n",root);
     return 1;
 }
 
@@ -176,8 +175,25 @@ void traverseDict(dictionary * d, size_t root){
     traverseHelp(d,word,root,0,0);
 }
 
+void resetDict(dictionary * d){
+    reset(&d->leafs);
+}
+
+entry_t nextDict(dictionary * d, int * bottom){
+    int done;
+    entry_t e = next(&d->leafs,&done);
+
+    if(bottom)
+        *bottom = done;
+
+    if(!done)
+        return d->arena[e.data.address].entry;
+    return (entry_t){0};
+}
+
 void destroyDict(dictionary* d) {
     free(d->arena);
+    destroyStack(&d->leafs);
     d->arena = NULL;
     d->height = 0;
     d->capacity = 0;

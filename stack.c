@@ -21,7 +21,6 @@ void destroyStack(stack * s){
 
 void push(stack * s, entry_t e){
     
-    // printf("stacking context: %ld ",e.data.value);
     s->height++;
 
     //reallocate memory if needed
@@ -31,8 +30,6 @@ void push(stack * s, entry_t e){
     }
     s->stack[s->height] = e;
     s->top = e;
-    // printf("stacked at: %ld",s->height);
-    // printf(" top is: %ld\n",s->height);
 }
 
 entry_t pop(stack * s, int * bottom){
@@ -43,14 +40,12 @@ entry_t pop(stack * s, int * bottom){
     if(s->height == 0){
         if(bottom) *bottom = 1;
         s->top = s->stack[0];
-        // printf("popping failed!\n");
         return s->stack[0];
     }
     
     entry_t e = s->stack[s->height];
     s->height--;
     s->top = s->stack[s->height];
-    // printf("popping context: %ld height: %ld\n",e.data.value,s->height);
     return e;
 }
 
@@ -63,12 +58,10 @@ entry_t next(stack * s, int * bottom){
 
     if(bottom) *bottom = 0;
     entry_t e = s->stack[s->at];
-    // printf("iterating @%ld\n",s->at);
     s->at--;
     return e;
 }
 
 void reset(stack * s){
-    // printf("reset at(%ld) to %ld\n", s->at, s->height - 1);
     s->at = s->height;
 }

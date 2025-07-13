@@ -14,8 +14,14 @@ int main(int argc, char **argv){
     int quiet_parser = 1;
     int quiet_semantis = 1;
     int quiet_intermediary = 1;
+    int quiet_assembler = 1;
 
-    while ((option = getopt (argc, argv, "lLpPsSiI")) != -1){
+    if(argc < 3){
+        fprintf(stderr,"ERRO: não foram fornecidos argumentos o suficiente\n");
+        return 1;
+    }
+
+    while ((option = getopt (argc, argv, "lLpPsSiIaA")) != -1){
 
         switch (option){
             
@@ -38,9 +44,14 @@ int main(int argc, char **argv){
             case 'i':
                 quiet_intermediary = 0;
                 break;
+
+            case 'A':
+            case 'a':
+                quiet_assembler = 0;
+                break;
             
             case '?':
-                printf("opção inválida -%c",option);
+            fprintf(stderr,"ERRO: opção inválida -%c\n",option);
                 return 1;
             
             default:
@@ -48,22 +59,21 @@ int main(int argc, char **argv){
         }
     }
     
-    scanner * scan = createScanner(argv[argc-1],quiet_scanner); 
+    scanner * scan = createScanner(argv[argc-2],quiet_scanner); 
     semantis * tix = createSemantis(26 * 26,quiet_semantis);
     parser * par = createParser(scan,tix,quiet_parser);
     
     parse(par);
     int success = scan->success && par->success && tix->success;
-
-    if(success){
-        intermediary * inter = createIntermediary(par,quiet_intermediary);
-        assembler ass = createAssembler(inter);
-        
-        generate(inter,inter->root);
-        assemble(&ass);
-        destroyAssembler(&ass);
-    }
     
-    destroyParser(par);
-    return !success;
+    if(!success){
+        destroyParser(par);
+        return 1;
+    }
+
+    intermediary * inter = createIntermediary(par,quiet_intermediary);
+    assembler ass = createAssembler(argv[argc-1],inter,quiet_assembler);
+    assemble(&ass);
+    destroyAssembler(&ass);
+    return 0;
 }

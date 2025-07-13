@@ -82,7 +82,7 @@ dfa_states getToken(scanner * s){
     s->done = c == EOF;     
     
     if(!s->done && state == FAILURE){
-        printf("ERRO LEXICO: %c(%u) INVALIDO [linha: %ld], COLUNA: %ld\n",c,c,s->program->line,s->program->column);
+        fprintf(stderr,"ERRO LEXICO: %c(%u) INVALIDO [linha: %ld], COLUNA: %ld\n",c,c,s->program->line,s->program->column);
         s->success = 0;
         return getToken(s);
     }

@@ -14,7 +14,13 @@
 #define RETURN_REGISTER_ADDR 6
 #define DISP_ADDR 7
 #define SWITCH_ADDR 8
-#define CONSTANT_MEMORY_START 9
+#define VEC_DEF_ADDR_A 9
+#define VEC_DEF_ADDR_B 10
+#define CONSTANT_MEMORY_START 11
+
+#define CALLSTACK_SIZE 128
+#define ARGUMENT_STACK_SIZE 128
+#define MEMORY_SIZE 1024
 
 
 typedef enum{
@@ -51,34 +57,13 @@ typedef struct assembler{
     intermediary * inter;
     ins_t * assembly;
     size_t * memory;
+    int quiet;
+    FILE * out;
 }assembler;
 
 
-assembler createAssembler(intermediary * i);
+assembler createAssembler(char * path, intermediary * i, int quiet);
 void assemble(assembler * a);
 void destroyAssembler(assembler * a);
 
-
-// typedef struct variable{
-//     size_t addresss;
-//     size_t size;
-//     size_t value;
-// }variable;
-
-
-// typedef struct assembler{
-//     intermediary * inter;
-//     size_t ram_address;
-//     size_t rom_address;
-//     stack ram_context;
-//     stack rom_context;
-//     uint64_t * ram_map;
-//     uint64_t * rom_map;
-//     size_t ram_size;
-//     size_t rom_size;
-
-// }assembler;
-
-// assembler createAssembler(intermediary i, size_t hash_size);
-// void asssemble(assembler a);
 #endif
