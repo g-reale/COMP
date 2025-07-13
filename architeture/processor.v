@@ -259,6 +259,13 @@ module processor(
                         state <= DEFERENCE;
                         goto <= SET;
                     end
+
+                    `SETI: begin
+                        arg_a <= op_a;
+                        write_into <= op_c;
+                        state <= WRITE_BACK;
+                    end
+
                 endcase
             end
 

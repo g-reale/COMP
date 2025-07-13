@@ -173,25 +173,14 @@ void generate(intermediary * inter, node * root){
             //vector activation
             if(root->decedents[1]->decedents[0]->token == VECTOR_ACTIVATION){
                 insertQuadruple(inter,createQuadruple(
-                                    MUL,
-                                    inter->anonymous,
-                                    root->decedents[1]->decedents[0]->decedents[1]->lexeme,
-                                    "8",
-                                    inter->quiet
-                                ));
-                char * source_B = strdup(inter->anonymous);
-                nextLabel(inter);
-                
-                insertQuadruple(inter,createQuadruple(
                     VECTOR_ACTIVATION,
                     inter->anonymous,
                     root->decedents[0]->lexeme,
-                    source_B,
+                    root->decedents[1]->decedents[0]->decedents[1]->lexeme,
                     inter->quiet    
                 ));
                 root->lexeme = strdup(inter->anonymous);
                 nextLabel(inter);
-                free(source_B);
                 return;
             }
 

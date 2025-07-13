@@ -28,11 +28,12 @@ module alu(
             `SET,
             `SETDS,
             `SETDDI,
-            `SETDD: result = arg_a;
+            `SETDD,
+            `SETI: result = arg_a;
 
-            `JMP: begin
-                result = arg_a != 0 ? currpc : 0;
-                nxtpc = (arg_a != 0) ? arg_b : currpc + 1;
+            `FJMP: begin
+                result = arg_a == 0 ? currpc : 0;
+                nxtpc = (arg_a == 0) ? arg_b : currpc + 1;
             end
 				
 				default: result = 0;

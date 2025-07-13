@@ -28,8 +28,11 @@ entry_t querryDict(dictionary * d, char* name, int* found, size_t root, size_t *
         uint64_t bit  = letter & 63;
         uint64_t transition = (d->arena + root)->transitions[mask];
 
-        if (!(transition & (1ULL << bit)))
-            return (entry_t){0};
+        if (!(transition & (1ULL << bit))){
+            if(root == 0)            
+                return (entry_t){0};
+            return querryDict(d,name,found,0,leaf);
+        }
 
         root = (d->arena + root)->decedents[letter];
     }
@@ -44,17 +47,18 @@ entry_t querryDict(dictionary * d, char* name, int* found, size_t root, size_t *
 
 int insertDict(dictionary* d, char* name, entry_t e, size_t root, size_t * leaf) {
 
-    if (!name || d->height < root) 
+    if (!name|| d->height < root) 
         return 0;
 
     size_t i;
     unsigned char letter;
 
+
     for (i = 0; (letter = (unsigned char)name[i]) != '\0'; i++){
         uint64_t mask = letter >> 6;
         uint64_t bit  = letter & 63;
         uint64_t transition = (d->arena + root)->transitions[mask];
-        
+    
         if (!(transition & (1ULL << bit)))
             break;
 
@@ -103,13 +107,24 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
     if(node.filled){
         word[index] = '\0';
         switch (node.entry.type){
-            case SUBTREE:
-                printf("%s\tSUBTREE\n",word);
+            case FUNCTION:
+                printf("%s\t%ld\t%ld\t%ld\tFUNCTION\n",word, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 prefix = index;
                 break;
             
-            case ADDRESS:
-                printf("\t%s\t%ld\t%ld\tADDRESS\n",word + prefix, node.entry.entry.address,node.entry.entry.size);
+            case VARIABLE:
+                printf("\t%s\t%ld\t%ld\t%ld\tVARIABLE\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                break;
+
+            case PPOINTER:
+                printf("\t%s\t%ld\t%ld\t%ld\tPPOINTER\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                break;
+
+            case CONSTANT:
+                printf("\t%s\t%ld\t%ld\t%ld\tCONSTANT\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                break;
+            
+            default:
                 break;
         }
     }
@@ -119,7 +134,7 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
         uint64_t bit  = i & 63;
         uint64_t transition = node.transitions[mask];
 
-        if(transition & (1ULL << bit)){ //avoid recursion on the roor node
+        if(transition & (1ULL << bit)){ //avoid recursion on the root node
             word[index] = (char)i;
             traverseHelp(d,word,node.decedents[i],index + 1, prefix);
         }
@@ -127,8 +142,8 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
     
     if(node.filled){
         switch (node.entry.type){
-            case SUBTREE:
-                printf("SUBTREE END\n");
+            case FUNCTION:
+                printf("FUNCTION END\n");
                 break;
             
             default: break;

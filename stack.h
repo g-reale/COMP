@@ -7,18 +7,21 @@
 #define INITIAL_CAPACITY 40
 
 typedef enum {
-    ADDRESS,
-    SUBTREE
+    VARIABLE,
+    FUNCTION,
+    PPOINTER,
+    CONSTANT
 } type_t;
 
 typedef struct {
     size_t address;
     size_t size;
+    size_t value;
 } data_t;
 
 typedef struct {
     type_t type;
-    data_t entry;
+    data_t data;
 } entry_t;
 
 typedef struct stack {

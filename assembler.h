@@ -11,7 +11,9 @@
 #define THREE_CT_ADDR 4
 #define MISC_REGISTER_ADDR 5
 #define RETURN_REGISTER_ADDR 6
-#define CONSTANT_MEMORY_START 7
+#define DISP_ADDR 7
+#define SWITCH_ADDR 8
+#define CONSTANT_MEMORY_START 9
 
 
 typedef enum{
@@ -19,17 +21,18 @@ typedef enum{
     ASM_SUB     = 1,
     ASM_MUL     = 2,
     ASM_DIV     = 3,
-    ASM_LT      = 4,
-    ASM_GT      = 5,
-    ASM_LEQ     = 6,
-    ASM_GEQ     = 7,
-    ASM_EQ      = 8,
-    ASM_NEQ     = 9,
-    ASM_JMP     = 10,
-    ASM_SET     = 12,
-    ASM_SETDS   = 13,
-    ASM_SETDD   = 14,
-    ASM_SETDDI  = 15,
+    ASM_FJMP    = 4,
+    ASM_LT      = 5,
+    ASM_GT      = 6,
+    ASM_LEQ     = 7,
+    ASM_GEQ     = 8,
+    ASM_EQ      = 9,
+    ASM_NEQ     = 10,
+    ASM_SET     = 11,
+    ASM_SETDS   = 12,
+    ASM_SETDD   = 13,
+    ASM_SETDDI  = 14,
+    ASM_SETI    = 15
 }asm_t;
 
 typedef struct {
@@ -41,12 +44,12 @@ typedef struct {
 
 typedef struct assembler{
     dictionary varmap;
-    dictionary progmap;
     size_t varat;
     size_t progat;
     size_t context;
     intermediary * inter;
     ins_t * assembly;
+    size_t * memory;
 }assembler;
 
 
