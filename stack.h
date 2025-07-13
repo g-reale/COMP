@@ -10,7 +10,9 @@ typedef enum {
     VARIABLE,
     FUNCTION,
     PPOINTER,
-    CONSTANT
+    CONSTANT,
+    CONTEXT,
+    VECTOR
 } type_t;
 
 typedef struct {
@@ -25,7 +27,8 @@ typedef struct {
 } entry_t;
 
 typedef struct stack {
-    entry_t* stack;
+    entry_t * stack;
+    entry_t top;
     size_t capacity;
     size_t height;
     size_t at;
@@ -34,7 +37,7 @@ typedef struct stack {
 stack createStack();
 void destroyStack(stack * s);
 void push(stack * s, entry_t e);
-entry_t pop(stack * s, int * botton);
-entry_t next(stack * s, int * botton);
+entry_t pop(stack * s, int * bottom);
+entry_t next(stack * s, int * bottom);
 void reset(stack * s);
 #endif

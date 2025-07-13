@@ -75,6 +75,12 @@ void generate(intermediary * inter, node * root){
             insertQuadruple(inter,createQuadruple(instruction,identifier,size,NULL,inter->quiet));
         }break;
 
+        case VOID_COMPOSED_DECL:
+        case INT_COMPOSED_DECL:{
+            insertQuadruple(inter,createQuadruple(root->token,inter->anonymous,NULL,NULL,inter->quiet));
+            nextLabel(inter);
+        }break;
+
         //pop a parameter from the stack
         case PARAM:{
             char * identifier = root->decedents[1]->lexeme;
@@ -186,7 +192,7 @@ void generate(intermediary * inter, node * root){
 
             //function activation
             node * arguments = root->decedents[1]->decedents[0]->decedents[1];
-            for(size_t i = 0; i < arguments->decedent_amount; i++){
+            for(int i = arguments->decedent_amount - 1; 0 <= i ; i--){
                 if(arguments->decedents[i]->token != ARGUMENT)
                     continue;
 
@@ -307,6 +313,11 @@ void generate(intermediary * inter, node * root){
                 NULL,
                 inter->quiet
             ));
+        }break;
+
+        case VOID_COMPOSED_DECL:
+        case INT_COMPOSED_DECL:{
+            insertQuadruple(inter,createQuadruple(root->token,NULL,NULL,NULL,inter->quiet));
         }break;
 
         default:

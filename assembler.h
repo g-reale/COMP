@@ -3,6 +3,7 @@
 
 #include "intermediary.h"
 #include "dictionary.h"
+#include "stack.h"
 
 #define PC_ADDR 0
 #define ARG_STACK_ADDR 1
@@ -46,7 +47,7 @@ typedef struct assembler{
     dictionary varmap;
     size_t varat;
     size_t progat;
-    size_t context;
+    stack context;
     intermediary * inter;
     ins_t * assembly;
     size_t * memory;

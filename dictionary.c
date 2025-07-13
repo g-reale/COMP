@@ -13,7 +13,7 @@ dictionary createDict() {
     return d;
 }
 
-entry_t querryDict(dictionary * d, char* name, int* found, size_t root, size_t * leaf){
+entry_t queryDict(dictionary * d, char* name, int* found, size_t root, size_t * leaf){
     
     if(found)
         *found = 0;
@@ -28,11 +28,8 @@ entry_t querryDict(dictionary * d, char* name, int* found, size_t root, size_t *
         uint64_t bit  = letter & 63;
         uint64_t transition = (d->arena + root)->transitions[mask];
 
-        if (!(transition & (1ULL << bit))){
-            if(root == 0)            
-                return (entry_t){0};
-            return querryDict(d,name,found,0,leaf);
-        }
+        if (!(transition & (1ULL << bit)))
+            return (entry_t){0};
 
         root = (d->arena + root)->decedents[letter];
     }
@@ -53,6 +50,7 @@ int insertDict(dictionary* d, char* name, entry_t e, size_t root, size_t * leaf)
     size_t i;
     unsigned char letter;
 
+    // printf("inserting: %s from: %ld... ", name, root);
 
     for (i = 0; (letter = (unsigned char)name[i]) != '\0'; i++){
         uint64_t mask = letter >> 6;
@@ -65,14 +63,17 @@ int insertDict(dictionary* d, char* name, entry_t e, size_t root, size_t * leaf)
         root = (d->arena + root)->decedents[letter];
     }
 
-    if (letter == '\0' && (d->arena + root)->filled)
+    if (letter == '\0' && (d->arena + root)->filled){
+        // printf("failled\n");
         return 0;
+    }
 
     if (letter == '\0'){
         if(leaf)
             *leaf = root;
         (d->arena + root)->entry = e;
         (d->arena + root)->filled = 1;
+        // printf("leaf: %ld\n",root);
         return 1;
     }
 
@@ -97,6 +98,7 @@ int insertDict(dictionary* d, char* name, entry_t e, size_t root, size_t * leaf)
         *leaf = root;
     (d->arena + root)->entry = e;
     (d->arena + root)->filled = 1;
+    // printf("leaf: %ld\n",root);
     return 1;
 }
 
@@ -111,6 +113,11 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
                 printf("%s\t%ld\t%ld\t%ld\tFUNCTION\n",word, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 prefix = index;
                 break;
+
+            case CONTEXT:
+            //     printf("%s\tCONTEXT\n",word);
+                prefix = index;
+                break;
             
             case VARIABLE:
                 printf("\t%s\t%ld\t%ld\t%ld\tVARIABLE\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
@@ -122,6 +129,10 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
 
             case CONSTANT:
                 printf("\t%s\t%ld\t%ld\t%ld\tCONSTANT\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                break;
+
+            case VECTOR:
+                printf("\t%s\t%ld\t%ld\t%ld\tVECTOR\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 break;
             
             default:
@@ -146,6 +157,10 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
                 printf("FUNCTION END\n");
                 break;
             
+            // case CONTEXT:
+            //     printf("CONTEXT END\n");
+            //     break;
+
             default: break;
         }
     }

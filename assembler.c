@@ -1,18 +1,38 @@
 #include "assembler.h"
+#include <ctype.h>
 
 assembler createAssembler(intermediary * i){
     assembler a = {
         .varmap = createDict(),
-        .context = 0,
+        .context = createStack(),
         .inter = i,
         .varat = CONSTANT_MEMORY_START,
         .progat = 0,
     };
 
     // DMA variables
+    push(&a.context,(entry_t){.type = CONTEXT, .data = (data_t){.value = 0}});
     insertDict(&a.varmap,"DISPADDR",(entry_t){.type = CONSTANT, .data = (data_t){.address = DISP_ADDR, .size = 1, .value = 0}},0,NULL);
     insertDict(&a.varmap,"SWICHADDR",(entry_t){.type = CONSTANT, .data = (data_t){.address = SWITCH_ADDR, .size = 1, .value = 0}},0,NULL);
     return a;
+}
+
+entry_t traverseContexts(assembler * a, char * name, size_t * leaf){
+    int bottom = 0;
+    int found = 0;
+
+    // printf("searching %s\n",name);
+
+    entry_t match;
+    reset(&a->context);
+    while(!bottom && !found){
+        entry_t context = next(&a->context,&bottom);
+        // printf("\ttring context %ld",context.data.value);
+        match = queryDict(&a->varmap,name,&found,context.data.value,leaf);
+        // printf(" got %d\n",found);
+    }
+    // printf("match results: %d %ld %ld %ld %ld\n\n",match.type,match.data.address, match.data.size, match.data.value, leaf ? *leaf : 0);
+    return match;
 }
 
 void assemble(assembler * a){
@@ -31,20 +51,36 @@ void assemble(assembler * a){
                 if(quad.destination){
                     size_t leaf;
                     insertDict(&a->varmap,quad.destination,(entry_t){.type = FUNCTION, (data_t){.address = a->varat, .size = 1, .value = a->progat}},0,&leaf);
+                    push(&a->context,(entry_t){.type = CONTEXT, (data_t){.value = leaf}});
                     a->varat++;
-                    a->context = leaf;
                     break;
                 }
 
                 //closing function
-                a->context = 0;
+                pop(&a->context,NULL);
                 a->progat+=3;
+            }break;
+
+            //changing the context
+            case VOID_COMPOSED_DECL:
+            case INT_COMPOSED_DECL:{
+                
+                //opening context
+                if(quad.destination){
+                    size_t leaf;
+                    insertDict(&a->varmap,quad.destination,(entry_t){.type = CONTEXT},a->context.top.data.value,&leaf);
+                    push(&a->context,(entry_t){.type = CONTEXT, .data = (data_t){.value = leaf}});
+                    break;
+                }
+
+                //closing context
+                pop(&a->context,NULL);
             }break;
             
             //inserting a vector in the dict
             case VEC_DECL:{
                 size_t offset = (size_t)strtoull(quad.source_A, NULL, 10);
-                insertDict(&a->varmap,quad.destination,(entry_t){.type = VARIABLE, .data = {.address = a->varat, .size = offset}},a->context,NULL);
+                insertDict(&a->varmap,quad.destination,(entry_t){.type = VECTOR, .data = {.address = a->varat, .size = offset}},a->context.top.data.value,NULL);
                 a->varat += offset;
             }break;
 
@@ -54,14 +90,15 @@ void assemble(assembler * a){
                 a->progat+=2;
             [[fallthrough]];
             case SCALAR_DECL:{
-
                 insertDict(&a->varmap,quad.destination,
-                (entry_t){.type = VARIABLE, .data = {
-                            .address = a->varat, 
-                            .size = 1, 
-                            .value = isdigit(quad.destination[0]) ? (size_t)strtoull(quad.destination, NULL, 10) : 0
-                            }
-                        },a->context,NULL);
+                (entry_t){
+                    .type = quad.instruction == VEC_PARAM ? VECTOR : VARIABLE, 
+                    .data = {
+                        .address = a->varat, 
+                        .size = 1, 
+                        .value = isdigit(quad.destination[0]) ? (size_t)strtoull(quad.destination, NULL, 10) : 0
+                        }
+                    },a->context.top.data.value,NULL);
                 a->varat++;
             }break;
 
@@ -91,7 +128,7 @@ void assemble(assembler * a){
                                             .value = digit ? (size_t)strtoull(names[i], NULL, 10) : 0
                                         }
                                     },
-                                    digit ? 0 : a->context, NULL);
+                                    digit ? 0 : a->context.top.data.value, NULL);
                     }
                 }
                 a->progat++;
@@ -118,9 +155,9 @@ void assemble(assembler * a){
                 (entry_t){.type = VARIABLE, .data = {
                             .address = a->varat, 
                             .size = 1, 
-                            .value = isdigit(quad.destination[0]) ? (size_t)strtoull(quad.destination, NULL, 10) : 0
+                            .value = 0
                         }
-                },a->context,NULL);
+                },a->context.top.data.value,NULL);
                 a->varat++;
                 a->progat+=5;
                 break;
@@ -133,7 +170,7 @@ void assemble(assembler * a){
                                 .size = 1, 
                                 .value = a->progat  //store the current line
                             }
-                    },a->context,NULL);
+                    },a->context.top.data.value,NULL);
                 a->varat++;
             break;
             
@@ -145,7 +182,7 @@ void assemble(assembler * a){
 
             //allocate space for a vector activation
             case VECTOR_ACTIVATION:
-                a->progat += 2;
+                a->progat += 3;
             break;
 
             default:
@@ -171,9 +208,9 @@ void assemble(assembler * a){
                 // opening function
                 if(quad.destination){
                     size_t leaf;
-                    entry_t function = querryDict(&a->varmap,quad.destination,NULL,0,&leaf);
-                    a->varmap.arena[leaf].entry.data.value = function.data.value + a->varat + CONSTANT_MEMORY_START;    //offsetting program instructions
-                    a->context = leaf;
+                    entry_t function = traverseContexts(a,quad.destination,&leaf);
+                    a->varmap.arena[leaf].entry.data.value = function.data.value + a->varat;    //offsetting program instructions
+                    push(&a->context,(entry_t){.type = CONTEXT, (data_t){.value = leaf}});
                     break;
                 }
 
@@ -203,7 +240,23 @@ void assemble(assembler * a){
                 };
                 j++;
                 
-                a->context = 0;
+                pop(&a->context,NULL);
+            }break;
+
+            //changing the context
+            case VOID_COMPOSED_DECL:
+            case INT_COMPOSED_DECL:{
+                
+                //opening context
+                if(quad.destination){
+                    size_t leaf;
+                    entry_t context = traverseContexts(a,quad.destination,&leaf);
+                    push(&a->context,(entry_t){.type = CONTEXT, .data = (data_t){.value = leaf}});
+                    break;
+                }
+
+                //closing context
+                pop(&a->context,NULL);
             }break;
 
             case EQUAL:
@@ -230,9 +283,9 @@ void assemble(assembler * a){
                 
                 a->assembly[j] = (ins_t){
                     .instruction = opcode,
-                    .destination = querryDict(&a->varmap,quad.destination,NULL,a->context,NULL).data.address,
-                    .source_A = querryDict(&a->varmap,quad.source_A,NULL,a->context,NULL).data.address,
-                    .source_B = querryDict(&a->varmap,quad.source_B,NULL,a->context,NULL).data.address,
+                    .destination = traverseContexts(a,quad.destination,NULL).data.address,
+                    .source_A = traverseContexts(a,quad.source_A,NULL).data.address,
+                    .source_B = traverseContexts(a,quad.source_B,NULL).data.address,
                 };
                 j++;
             } break;
@@ -244,7 +297,7 @@ void assemble(assembler * a){
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_SET,
                     .destination = RETURN_REGISTER_ADDR,
-                    .source_A = querryDict(&a->varmap,quad.destination,NULL,a->context,NULL).data.address,
+                    .source_A = traverseContexts(a,quad.destination,NULL).data.address,
                 };
                 j++;
 
@@ -287,12 +340,12 @@ void assemble(assembler * a){
                 j++;
 
                 //stack scalar or vector (copy/reference)
-                data_t variable = querryDict(&a->varmap,quad.destination,NULL,a->context,NULL).data;
-                opcode = 1 == variable.size ? ASM_SETDD : ASM_SETDDI;
+                entry_t variable = traverseContexts(a,quad.destination,NULL);
+                opcode = variable.type == VECTOR ? ASM_SETDDI : ASM_SETDD;
                 a->assembly[j] = (ins_t){
                     .instruction = opcode,
                     .destination = ARG_STACK_ADDR,
-                    .source_A = variable.address
+                    .source_A = variable.data.address
                 };
                 j++;
             }break;
@@ -302,7 +355,7 @@ void assemble(assembler * a){
             case VEC_PARAM:{
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_SETDS,
-                    .destination = querryDict(&a->varmap,quad.destination,NULL,a->context,NULL).data.address,
+                    .destination = traverseContexts(a,quad.destination,NULL).data.address,
                     .source_A = ARG_STACK_ADDR,
                 };
                 j++;
@@ -349,14 +402,14 @@ void assemble(assembler * a){
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_SET,
                     .destination = PC_ADDR,
-                    .source_A = querryDict(&a->varmap,quad.source_A,NULL,0,NULL).data.address,
+                    .source_A = traverseContexts(a,quad.source_A,NULL).data.address,
                 };
                 j++;
                 
                 //recuperate the value in the return register
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_SET,
-                    .destination = querryDict(&a->varmap,quad.destination,NULL,a->context,NULL).data.address,
+                    .destination = traverseContexts(a,quad.destination,NULL).data.address,
                     .source_A = RETURN_REGISTER_ADDR,
                 };
                 j++;
@@ -368,48 +421,61 @@ void assemble(assembler * a){
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_FJMP,
                     .destination = MISC_REGISTER_ADDR,
-                    .source_A = querryDict(&a->varmap,quad.destination,NULL,a->context,NULL).data.address,
-                    .source_B = querryDict(&a->varmap,quad.source_B,NULL,a->context,NULL).data.address,
+                    .source_A = traverseContexts(a,quad.destination,NULL).data.address,
+                    .source_B = traverseContexts(a,quad.source_B,NULL).data.address,
                 };
                 j++;
             }break;
 
             //inconditional PC set
             case GOTO:{
-                size_t leaf;
-                entry_t label = querryDict(&a->varmap,quad.destination,NULL,a->context,&leaf);
-                a->varmap.arena[leaf].entry.data.value = label.data.value + a->varat + CONSTANT_MEMORY_START;   //offsetting program instructions
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_SET,
                     .destination = PC_ADDR,
-                    .source_A = label.data.address,
+                    .source_A = traverseContexts(a,quad.destination,NULL).data.address,
                 };
                 j++;
             }break;
 
-            
+            //offset the label reference to after the constant memory
+            case LABEL:{
+                size_t leaf;
+                entry_t label = traverseContexts(a,quad.destination,&leaf);
+                a->varmap.arena[leaf].entry.data.value = label.data.value + a->varat;   //offsetting program instructions
+            }break;
+
+            //access a vector via pointer arithmetic
             case VECTOR_ACTIVATION:{
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_SETI,
                     .destination = MISC_REGISTER_ADDR,
-                    .source_A = querryDict(&a->varmap,quad.source_A,NULL,a->context,NULL).data.address,
+                    .source_A = traverseContexts(a,quad.source_A,NULL).data.address,
                 };
                 j++;
 
                 a->assembly[j] = (ins_t){
                     .instruction = ASM_ADD,
-                    .destination = querryDict(&a->varmap,quad.destination,NULL,a->context,NULL).data.address,
+                    .destination = MISC_REGISTER_ADDR,
                     .source_A = MISC_REGISTER_ADDR,
-                    .source_B = querryDict(&a->varmap,quad.source_B,NULL,a->context,NULL).data.address,
+                    .source_B = traverseContexts(a,quad.source_B,NULL).data.address,
                 };
                 j++;
+
+                a->assembly[j] = (ins_t){
+                    .instruction = ASM_SETDS,
+                    .destination = traverseContexts(a,quad.destination,NULL).data.address,
+                    .source_A = MISC_REGISTER_ADDR
+                };
+                j++;
+
             }break;
 
             default:
                 break;
         }
-    }
 
+    }
+    
     //layout constant memory
     a->memory = (size_t *)calloc(sizeof(size_t),a->varat);
     for(size_t i = 0; i < a->varmap.height; i++){
@@ -418,7 +484,7 @@ void assemble(assembler * a){
             a->memory[variable.data.address] = variable.data.value;
         }
     }
-    a->memory[PC_ADDR] = querryDict(&a->varmap,"main",NULL,0,NULL).data.value;
+    a->memory[PC_ADDR] = queryDict(&a->varmap,"main",NULL,0,NULL).data.value;
 }
 
 void destroyAssembler(assembler * a){
@@ -479,6 +545,7 @@ void destroyAssembler(assembler * a){
 
     destroyIntermediary(a->inter);
     destroyDict(&a->varmap);
+    destroyStack(&a->context);
     free(a->assembly);
     free(a->memory);
 }

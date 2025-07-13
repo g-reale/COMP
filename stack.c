@@ -5,9 +5,10 @@
 stack createStack(){
     stack s = {
         .stack = (entry_t*) malloc(sizeof(entry_t) * INITIAL_CAPACITY),
+        .top = (entry_t){0},
         .capacity = INITIAL_CAPACITY,
         .height = 0,
-        .at = 1,
+        .at = 0,
     };
 
     return s;
@@ -20,44 +21,54 @@ void destroyStack(stack * s){
 
 void push(stack * s, entry_t e){
     
+    // printf("stacking context: %ld ",e.data.value);
+    s->height++;
+
     //reallocate memory if needed
     if(s->height == s->capacity){
         s->capacity *= 2;
         s->stack = realloc(s->stack, sizeof(entry_t) * s->capacity);
     }
     s->stack[s->height] = e;
-    // printf("pushing: %ld\n",s->stack[s->height].data.address);
-    s->height++;
+    s->top = e;
+    // printf("stacked at: %ld",s->height);
+    // printf(" top is: %ld\n",s->height);
 }
 
-entry_t pop(stack * s, int * botton){
+entry_t pop(stack * s, int * bottom){
+    
+    if(bottom)
+        *bottom = 0;
     
     if(s->height == 0){
-        *botton = 1;
+        if(bottom) *bottom = 1;
+        s->top = s->stack[0];
+        // printf("popping failed!\n");
         return s->stack[0];
     }
-
-    *botton = 0;
-    entry_t e = s->stack[s->height-1];
-    // printf("poping: %ld\n",s->stack[s->height-1].data.address);
+    
+    entry_t e = s->stack[s->height];
     s->height--;
+    s->top = s->stack[s->height];
+    // printf("popping context: %ld height: %ld\n",e.data.value,s->height);
     return e;
 }
 
-entry_t next(stack * s, int * botton){
+entry_t next(stack * s, int * bottom){
 
-    if(s->height < s->at){
-        *botton = 1;
-        return s->stack[0];
+    if(1 == s->at){
+        if(bottom) *bottom = 1;
+        return s->stack[1];
     }
 
-    *botton = 0;
-    entry_t e = s->stack[s->height - s->at];
-    // printf("traversing: %ld\n",s->stack[s->height - s->at].data.address);
-    s->at++;
+    if(bottom) *bottom = 0;
+    entry_t e = s->stack[s->at];
+    // printf("iterating @%ld\n",s->at);
+    s->at--;
     return e;
 }
 
 void reset(stack * s){
-    s->at = 1;
+    // printf("reset at(%ld) to %ld\n", s->at, s->height - 1);
+    s->at = s->height;
 }
