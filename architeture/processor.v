@@ -163,7 +163,7 @@ module processor(
 			end
 			
 			SWICH_READ: begin
-				 displaying <= 0;
+				displaying <= 0;
 			    if(SW[17] == 0) state <= goto;
 		    end
 
@@ -231,7 +231,7 @@ module processor(
             INSTRUCTION_FETCH_3: begin
 
                 case(operator)
-                    `ADD, `SUB, `MUL, `DIV, `LT, `GT, `LEQ, `GEQ, `EQ, `NEQ, `JMP: begin
+                    `ADD, `SUB, `MUL, `DIV, `LT, `GT, `LEQ, `GEQ, `EQ, `NEQ, `FJMP: begin
                         read_from <= op_a;
                         state <= DEFERENCE;
                         goto <= ARITHMETIC;

@@ -47,12 +47,12 @@ entry_t traverseContexts(assembler * a, char * name, size_t * leaf){
 
 void writeBinary(assembler * a){
     for(size_t i = 0; i < a->varat; i++)
-        fprintf(a->out,"ram[%ld] = %ld;\n",i,a->memory[i]);
+        fprintf(a->out,"ram[%ld] = 34'd%ld;\n",i,a->memory[i]);
     
     for(size_t i = 0; i < a->progat; i++){
         ins_t instruction = a->assembly[i];
         size_t value = ((size_t)(instruction.instruction) << 30U) + (instruction.destination << 20U) + (instruction.source_A << 10U) + instruction.source_B;
-        fprintf(a->out,"ram[%ld] = %ld;\n",i + a->varat,value);
+        fprintf(a->out,"ram[%ld] = 34'd%ld;\n",i + a->varat,value);
     }
 
     // for(size_t i = a->progat + a->varat; i < MEMORY_SIZE; i++)
@@ -581,7 +581,8 @@ void assemble(assembler * a){
     a->memory[PC_ADDR] = queryDict(&a->varmap,"main",NULL,0,NULL).data.value;
     a->memory[ARG_STACK_ADDR] = a->progat + a->varat;
     a->memory[CALL_STACK_ADDR] = a->progat + a->varat + ARGUMENT_STACK_SIZE;
-
+    a->memory[ONE_CT_ADDR] = 1;
+    a->memory[THREE_CT_ADDR] = 3;
     writeBinary(a);
 }
 
