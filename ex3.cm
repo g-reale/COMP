@@ -1,0 +1,14 @@
+int arr[2];
+
+void show(int vec[]){
+    if(vec[0] > vec[1])
+        DISPADDR = vec[0];
+    else
+        DISPADDR = vec[1];
+}
+
+void main(void){
+    arr[0] = 17;
+    arr[1] = 18;
+    show(arr);
+}

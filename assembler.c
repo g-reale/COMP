@@ -59,6 +59,18 @@ void writeBinary(assembler * a){
     //     fprintf(a->out,"0\n");
 }
 
+// void writeBinary(assembler * a){
+//     for(size_t i = 0; i < a->varat; i++)
+//         fprintf(a->out,"%zx\n",a->memory[i]);
+    
+//     for(size_t i = 0; i < a->progat; i++){
+//         ins_t instruction = a->assembly[i];
+//         size_t value = ((size_t)(instruction.instruction) << 30U) + (instruction.destination << 20U) + (instruction.source_A << 10U) + instruction.source_B;
+//         fprintf(a->out,"%zx\n",value);
+//     }
+
+// }
+
 void assemble(assembler * a){
 
     //first pass solve memory addresses
@@ -234,7 +246,9 @@ void assemble(assembler * a){
             break;
 
             //allocate space for a vector activation
-            case VECTOR_ACTIVATION:
+            case VECTOR_ACTIVATION:{
+                
+                //insert the destination variable as a vector (access via reference)
                 a->varat += insertDict(&a->varmap,quad.destination,
                     (entry_t){.type = VECTOR, 
                                 .data = {
@@ -243,8 +257,22 @@ void assemble(assembler * a){
                                     .value = 0
                                 }
                         },a->context.top.data.value,NULL);
-            a->progat += 2;
-            break;
+
+                //insert the index variable, if constant insert in global memory
+                int digit = isdigit(quad.source_B[0]);
+                
+                a->varat += insertDict(&a->varmap, quad.source_B,
+                    (entry_t){.type = digit ? CONSTANT : VARIABLE,
+                        .data = {
+                            .address = a->varat,
+                            .size = 1,
+                            .value = digit ? (size_t)strtoull(quad.source_B, NULL, 10) : 0
+                        }
+                    },digit ? 0 : a->context.top.data.value, NULL);
+
+                //allocate space for a vector access
+                a->progat += 2;
+            }break;
 
             default:
                 break;
