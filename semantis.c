@@ -60,7 +60,7 @@ void popContext(semantis * s, size_t line){
     
     int returned = s->context_stack[s->top]->returned;
     if(!returned && s->context_stack[s->top]->explicit){
-        fprintf(stderr,"ERRO SEMANTICO: função inteira \"%s\" encerra sem retorno LINHA: %ld\n",
+        fprintf(stderr,"ERRO SEMANTICO: função inteira \"%s\" encerra sem retorno LINHA: %lld\n",
         s->context_stack[s->top]->name,
         line
     );
@@ -82,7 +82,7 @@ variable * declareVar(semantis * s, size_t line){
     variable * var;
 
     if(isUnique(*list,*size,s->lexeme) != NULL){
-        fprintf(stderr,"ERRO SEMANTICO: simbolo \"%s\" já foi declarado nesse contexto LINHA: %ld\n",s->lexeme,line);
+        fprintf(stderr,"ERRO SEMANTICO: simbolo \"%s\" já foi declarado nesse contexto LINHA: %lld\n",s->lexeme,line);
         s->success = 0;
         return NULL;
     }
@@ -93,13 +93,13 @@ variable * declareVar(semantis * s, size_t line){
     if(s->category == OPEN_ROUND){
 
         if(s->main_declared){
-            fprintf(stderr,"ERRO SEMANTICO: funcão \"%s\" declarada após a main LINHA: %ld\n",s->lexeme,line);
+            fprintf(stderr,"ERRO SEMANTICO: funcão \"%s\" declarada após a main LINHA: %lld\n",s->lexeme,line);
             s->success = 0;
         }
 
         if(index == main_hash && strcmp(s->lexeme,"main") == 0){
             if(s->type != VOID){
-                fprintf(stderr,"ERRO SEMANTICO: função main deve retornar void LINHA: %ld\n",line);
+                fprintf(stderr,"ERRO SEMANTICO: função main deve retornar void LINHA: %lld\n",line);
                 s->success = 0;
             }
             s->main_declared = 1;
@@ -125,7 +125,7 @@ variable * searchVar(semantis * s, size_t line){
     }
 
     if(var == NULL){
-        fprintf(stderr,"ERRO SEMANTICO: simbolo \"%s\" utilizado mas nunca declarado LINHA: %ld\n",s->lexeme,line);
+        fprintf(stderr,"ERRO SEMANTICO: simbolo \"%s\" utilizado mas nunca declarado LINHA: %lld\n",s->lexeme,line);
         s->success = 0;
         return NULL;
     }

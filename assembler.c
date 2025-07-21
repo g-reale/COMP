@@ -47,12 +47,12 @@ entry_t traverseContexts(assembler * a, char * name, size_t * leaf){
 
 void writeBinary(assembler * a){
     for(size_t i = 0; i < a->varat; i++)
-        fprintf(a->out,"ram[%ld] = 34'd%ld;\n",i,a->memory[i]);
+        fprintf(a->out,"ram[%lld] = 34'd%lld;\n",i,a->memory[i]);
     
     for(size_t i = 0; i < a->progat; i++){
         ins_t instruction = a->assembly[i];
         size_t value = ((size_t)(instruction.instruction) << 30U) + (instruction.destination << 20U) + (instruction.source_A << 10U) + instruction.source_B;
-        fprintf(a->out,"ram[%ld] = 34'd%ld;\n",i + a->varat,value);
+        fprintf(a->out,"ram[%lld] = 34'd%lld;\n",i + a->varat,value);
     }
 
     // for(size_t i = a->progat + a->varat; i < MEMORY_SIZE; i++)
@@ -116,8 +116,17 @@ void assemble(assembler * a){
             //inserting a vector in the dict
             case VEC_DECL:{
                 size_t offset = (size_t)strtoull(quad.source_A, NULL, 10);
-                insertDict(&a->varmap,quad.destination,(entry_t){.type = VECTOR, .data = {.address = a->varat, .size = offset}},a->context.top.data.value,NULL);
-                a->varat += offset;
+                insertDict(&a->varmap,quad.destination,
+                            (entry_t){
+                                .type = VECTOR, 
+                                .data = {
+                                        .address = a->varat,
+                                        .size = offset + 1, 
+                                        .value = a->varat + 1 //point to vector start
+                                    }
+                                },
+                            a->context.top.data.value,NULL);
+                a->varat += offset + 1;
             }break;
 
             //inserting vector parameters/scalars in the dict
@@ -140,8 +149,8 @@ void assemble(assembler * a){
 
             //returning form a function
             case RETURN:{
-                if(quad.destination != NULL && !isalpha(quad.destination)){
-                    int digit = isdigit(quad.destination);
+                if(quad.destination != NULL && !isalpha(quad.destination[0])){
+                    int digit = isdigit(quad.destination[0]);
                     a->varat += insertDict(&a->varmap,quad.destination,
                                 (entry_t){
                                     .type = digit ? CONSTANT : VARIABLE, 
@@ -249,6 +258,7 @@ void assemble(assembler * a){
             case VECTOR_ACTIVATION:{
                 
                 //insert the destination variable as a vector (access via reference)
+                if(quad.destination[0] == '_')
                 a->varat += insertDict(&a->varmap,quad.destination,
                     (entry_t){.type = VECTOR, 
                                 .data = {
@@ -259,19 +269,20 @@ void assemble(assembler * a){
                         },a->context.top.data.value,NULL);
 
                 //insert the index variable, if constant insert in global memory
-                int digit = isdigit(quad.source_B[0]);
-                
-                a->varat += insertDict(&a->varmap, quad.source_B,
-                    (entry_t){.type = digit ? CONSTANT : VARIABLE,
-                        .data = {
-                            .address = a->varat,
-                            .size = 1,
-                            .value = digit ? (size_t)strtoull(quad.source_B, NULL, 10) : 0
-                        }
-                    },digit ? 0 : a->context.top.data.value, NULL);
+                if(!isalpha(quad.source_B[0])){
+                    int digit = isdigit(quad.source_B[0]);
+                    a->varat += insertDict(&a->varmap, quad.source_B,
+                        (entry_t){.type = digit ? CONSTANT : VARIABLE,
+                            .data = {
+                                .address = a->varat,
+                                .size = 1,
+                                .value = digit ? (size_t)strtoull(quad.source_B, NULL, 10) : 0
+                            }
+                        },digit ? 0 : a->context.top.data.value, NULL);
+                }
 
                 //allocate space for a vector access
-                a->progat += 2;
+                a->progat ++;
             }break;
 
             default:
@@ -282,7 +293,7 @@ void assemble(assembler * a){
     //verify memory constrains
     size_t occupancy = a->progat + a->varat + CALLSTACK_SIZE + ARGUMENT_STACK_SIZE;
     if(MEMORY_SIZE < occupancy){
-        fprintf(stderr,"assembler: program too big! (%ld/%d)\n",occupancy,MEMORY_SIZE);
+        fprintf(stderr,"assembler: program too big! (%lld/%d)\n",occupancy,MEMORY_SIZE);
         exit(1);
     }
 
@@ -469,9 +480,9 @@ void assemble(assembler * a){
 
                 //stack scalar or vector (copy/reference)
                 entry_t variable = traverseContexts(a,quad.destination,NULL);
-                opcode = variable.type == VECTOR ? ASM_SETDDI : ASM_SETDD;
+                //opcode = variable.type == VECTOR ? ASM_SETDDI : ASM_SETDD;
                 a->assembly[j] = (ins_t){
-                    .instruction = opcode,
+                    .instruction = ASM_SETDD,
                     .destination = ARG_STACK_ADDR,
                     .source_A = variable.data.address
                 };
@@ -575,16 +586,9 @@ void assemble(assembler * a){
             //access a vector via pointer arithmetic
             case VECTOR_ACTIVATION:{
                 a->assembly[j] = (ins_t){
-                    .instruction = ASM_SETI,
-                    .destination = MISC_REGISTER_ADDR,
-                    .source_A = traverseContexts(a,quad.source_A,NULL).data.address,
-                };
-                j++;
-
-                a->assembly[j] = (ins_t){
                     .instruction = ASM_ADD,
                     .destination = traverseContexts(a,quad.destination,NULL).data.address,
-                    .source_A = MISC_REGISTER_ADDR,
+                    .source_A = traverseContexts(a,quad.source_A,NULL).data.address,
                     .source_B = traverseContexts(a,quad.source_B,NULL).data.address,
                 };
                 j++;
@@ -619,24 +623,24 @@ void destroyAssembler(assembler * a){
     if(!a->quiet){
         printf("VARIABLE MAP:\n");
         traverseDict(&a->varmap,0);
-        printf("\nPMEM @ %ld DUPING VARMEM\n",a->varat);
+        printf("\nPMEM @ %lld DUPING VARMEM\n",a->varat);
         for(size_t i = 0; i < a->varat; i++)
-            printf("%ld: %ld\n",i,a->memory[i]);
+            printf("%lld: %lld\n",i,a->memory[i]);
         printf("\nDUPING PMEM\n");
         
         char OPCODE_NAMES[16][32] = {"ASM_ADD","ASM_SUB","ASM_MUL","ASM_DIV","ASM_FJMP","ASM_LT","ASM_GT","ASM_LEQ","ASM_GEQ","ASM_EQ","ASM_NEQ","ASM_SET","ASM_SETDS","ASM_SETDD","ASM_SETDDI","ASM_SETI"};
         char RESERVED_NAMES[16][64] = {"PC","A_STACK","C_STACK","ONE","THREE","MISC_R","RET_R","DISP_ADDR","SWICH_ADDR","DEF_VEC_A","DEF_VEC_B"};
         
         for(size_t i = 0; i < a->progat; i++){
-            printf("%ld: %s(%d)\t",i + a->varat, OPCODE_NAMES[a->assembly[i].instruction],a->assembly[i].instruction);
+            printf("%lld: %s(%d)\t",i + a->varat, OPCODE_NAMES[a->assembly[i].instruction],a->assembly[i].instruction);
             size_t addresses[3] = {a->assembly[i].destination,a->assembly[i].source_A,a->assembly[i].source_B};
             for(size_t j = 0; j < 3; j++){
                 if(j == 2 && ASM_NEQ < a->assembly[i].instruction)
                     continue;
                 if(addresses[j] < CONSTANT_MEMORY_START)
-                    printf("%s(%ld)\t",RESERVED_NAMES[addresses[j]],addresses[j]);
+                    printf("%s(%lld)\t",RESERVED_NAMES[addresses[j]],addresses[j]);
                 else
-                    printf("%ld\t",addresses[j]);
+                    printf("%lld\t",addresses[j]);
             }
             printf("\n");
         }

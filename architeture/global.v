@@ -30,4 +30,4 @@
 `define DISP_ADDR 7
 `define SWITCH_ADDR 8
 
-//`define DEBUG 1
+`define DEBUG 1

@@ -141,7 +141,7 @@ module processor(
 				case(read_from)
 					`SWITCH_ADDR: begin
 						query <= SW[16:0];
-						displaying <= SW[16:0];
+						if(SW[16:0] != 0) displaying <= SW[16:0];
 						if(SW[17]) state <= SWICH_READ;
 				    end
 					 
