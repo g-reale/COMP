@@ -45,31 +45,25 @@ entry_t traverseContexts(assembler * a, char * name, size_t * leaf){
     return match;
 }
 
+void printBinary(size_t value, size_t length, FILE * fid){
+    for (int i = length - 1; i >= 0; --i)
+        fputc((value >> i) & 1 ? '1' : '0', fid);
+    fputc('\n', fid);
+}
+
 void writeBinary(assembler * a){
     for(size_t i = 0; i < a->varat; i++)
-        fprintf(a->out,"ram[%lld] = 34'd%lld;\n",i,a->memory[i]);
-    
+        printBinary(a->memory[i],34,a->out);
+
     for(size_t i = 0; i < a->progat; i++){
         ins_t instruction = a->assembly[i];
         size_t value = ((size_t)(instruction.instruction) << 30U) + (instruction.destination << 20U) + (instruction.source_A << 10U) + instruction.source_B;
-        fprintf(a->out,"ram[%lld] = 34'd%lld;\n",i + a->varat,value);
+        printBinary(value,34,a->out);
     }
 
     // for(size_t i = a->progat + a->varat; i < MEMORY_SIZE; i++)
     //     fprintf(a->out,"0\n");
 }
-
-// void writeBinary(assembler * a){
-//     for(size_t i = 0; i < a->varat; i++)
-//         fprintf(a->out,"%zx\n",a->memory[i]);
-    
-//     for(size_t i = 0; i < a->progat; i++){
-//         ins_t instruction = a->assembly[i];
-//         size_t value = ((size_t)(instruction.instruction) << 30U) + (instruction.destination << 20U) + (instruction.source_A << 10U) + instruction.source_B;
-//         fprintf(a->out,"%zx\n",value);
-//     }
-
-// }
 
 void assemble(assembler * a){
 
@@ -293,7 +287,7 @@ void assemble(assembler * a){
     //verify memory constrains
     size_t occupancy = a->progat + a->varat + CALLSTACK_SIZE + ARGUMENT_STACK_SIZE;
     if(MEMORY_SIZE < occupancy){
-        fprintf(stderr,"assembler: program too big! (%lld/%d)\n",occupancy,MEMORY_SIZE);
+        fprintf(stderr,"assembler: program too big! (%zu/%d)\n",occupancy,MEMORY_SIZE);
         exit(1);
     }
 
@@ -623,24 +617,24 @@ void destroyAssembler(assembler * a){
     if(!a->quiet){
         printf("VARIABLE MAP:\n");
         traverseDict(&a->varmap,0);
-        printf("\nPMEM @ %lld DUPING VARMEM\n",a->varat);
+        printf("\nPMEM @ %zu DUPING VARMEM\n",a->varat);
         for(size_t i = 0; i < a->varat; i++)
-            printf("%lld: %lld\n",i,a->memory[i]);
+            printf("%zu: %zu\n",i,a->memory[i]);
         printf("\nDUPING PMEM\n");
         
         char OPCODE_NAMES[16][32] = {"ASM_ADD","ASM_SUB","ASM_MUL","ASM_DIV","ASM_FJMP","ASM_LT","ASM_GT","ASM_LEQ","ASM_GEQ","ASM_EQ","ASM_NEQ","ASM_SET","ASM_SETDS","ASM_SETDD","ASM_SETDDI","ASM_SETI"};
         char RESERVED_NAMES[16][64] = {"PC","A_STACK","C_STACK","ONE","THREE","MISC_R","RET_R","DISP_ADDR","SWICH_ADDR","DEF_VEC_A","DEF_VEC_B"};
         
         for(size_t i = 0; i < a->progat; i++){
-            printf("%lld: %s(%d)\t",i + a->varat, OPCODE_NAMES[a->assembly[i].instruction],a->assembly[i].instruction);
+            printf("%zu: %s(%d)\t",i + a->varat, OPCODE_NAMES[a->assembly[i].instruction],a->assembly[i].instruction);
             size_t addresses[3] = {a->assembly[i].destination,a->assembly[i].source_A,a->assembly[i].source_B};
             for(size_t j = 0; j < 3; j++){
                 if(j == 2 && ASM_NEQ < a->assembly[i].instruction)
                     continue;
                 if(addresses[j] < CONSTANT_MEMORY_START)
-                    printf("%s(%lld)\t",RESERVED_NAMES[addresses[j]],addresses[j]);
+                    printf("%s(%zu)\t",RESERVED_NAMES[addresses[j]],addresses[j]);
                 else
-                    printf("%lld\t",addresses[j]);
+                    printf("%zu\t",addresses[j]);
             }
             printf("\n");
         }

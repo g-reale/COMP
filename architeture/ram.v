@@ -17,7 +17,7 @@ module ram
 	reg [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH-1:0];
 	
 	initial begin
-	`include "ram.mem"
+	$readmemb("ram.mem",ram)
 	end
 	
 	always @ (posedge write_clock)
