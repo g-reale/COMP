@@ -8,5 +8,5 @@ void sub(int a, int b){
 }
 
 void main(void){
-	sub(18,10);
+	sub(18,3);
 }	
