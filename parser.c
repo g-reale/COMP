@@ -99,11 +99,11 @@ void parseRecursively(parser * p, node * root, dfa_states * production, size_t i
         //try to match
         else if(symbol != OPTIONAL && symbol != REPETITION){
             if(terminal == symbol){
-                // analise(p->tix,terminal,p->scan->lexeme,p->scan->program->line);
+                analise(p->tix,terminal,p->scan->lexeme,p->scan->program->line);
                 createDecedent(root,terminal,p->scan->lexeme);
             }
             else{
-                fprintf(stderr,"ERRO SINTÁTICO: \"%s\" INVALIDO LINHA: %lld, COLUNA: %lld \n",STATE_NAMES[terminal-START],p->scan->program->line,p->scan->program->column);
+                fprintf(stderr,"ERRO SINTÁTICO: \"%s\" INVALIDO LINHA: %zu, COLUNA: %zu \n",STATE_NAMES[terminal-START],p->scan->program->line,p->scan->program->column);
                 p->success = 0;
             }
             terminal = getToken(p->scan);

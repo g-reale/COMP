@@ -52,7 +52,7 @@ void printContext(context * c){
                 printf("%s;%s;%s;%s",c->name,var.lexeme,STATE_NAMES[var.type - START],STATE_NAMES[var.category - START]);
 
                 for(size_t k = 0; k < var.use_amount; k++)
-                    printf(";%lld",var.uses[k]);
+                    printf(";%zu",var.uses[k]);
                 printf("\n");
             }
         }
@@ -80,7 +80,7 @@ size_t hash(char * lexeme, size_t size){
     while(lexeme[i] != '\0'){
         index += lexeme[i] * step;
         step *= 26;
-        // printf("%c %lld %lld\n",lexeme[i],i,index);
+        // printf("%c %zu %zu\n",lexeme[i],i,index);
         i++;
     }
 
@@ -107,13 +107,13 @@ variable * insert(variable ** list, size_t * size, dfa_states type, char * lexem
     //insert into list
     *list = (variable*)realloc(*list,sizeof(variable) * (*size + 1));
     *list[*size] = v;
-    // printf("inserted at %lld %s\n",*size,(*list[*size]).lexeme);
+    // printf("inserted at %zu %s\n",*size,(*list[*size]).lexeme);
     (*size)++;
     return *list + (*size-1);
 }
 
 variable * isUnique(variable * list, size_t size, char * lexeme){
-    // printf("checking for uniqueness of %s on a list of size %lld\n",lexeme,size);
+    // printf("checking for uniqueness of %s on a list of size %zu\n",lexeme,size);
     for(size_t i = 0; i < size; i++){
         if(strcmp(list[i].lexeme,lexeme) == 0){
             // printf("sucess!\n");

@@ -109,7 +109,7 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
         word[index] = '\0';
         switch (node.entry.type){
             case FUNCTION:
-                printf("%s\t%lld\t%lld\t%lld\tFUNCTION\n",word, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                printf("%s\t%zu\t%zu\t%zu\tFUNCTION\n",word, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 prefix = index;
                 break;
 
@@ -119,19 +119,19 @@ void traverseHelp(dictionary * d, char * word, size_t root, size_t index, size_t
                 break;
             
             case VARIABLE:
-                printf("\t%s\t%lld\t%lld\t%lld\tVARIABLE\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                printf("\t%s\t%zu\t%zu\t%zu\tVARIABLE\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 break;
 
             case PPOINTER:
-                printf("\t%s\t%lld\t%lld\t%lld\tPPOINTER\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                printf("\t%s\t%zu\t%zu\t%zu\tPPOINTER\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 break;
 
             case CONSTANT:
-                printf("\t%s\t%lld\t%lld\t%lld\tCONSTANT\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                printf("\t%s\t%zu\t%zu\t%zu\tCONSTANT\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 break;
 
             case VECTOR:
-                printf("\t%s\t%lld\t%lld\t%lld\tVECTOR\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
+                printf("\t%s\t%zu\t%zu\t%zu\tVECTOR\n",word + prefix, node.entry.data.address,node.entry.data.size,node.entry.data.value);
                 break;
             
             default:

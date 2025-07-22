@@ -82,17 +82,17 @@ dfa_states getToken(scanner * s){
     s->done = c == EOF;     
     
     if(!s->done && state == FAILURE){
-        fprintf(stderr,"ERRO LEXICO: %c(%u) INVALIDO [linha: %lld], COLUNA: %lld\n",c,c,s->program->line,s->program->column);
+        fprintf(stderr,"ERRO LEXICO: %c(%u) INVALIDO [linha: %zu], COLUNA: %zu\n",c,c,s->program->line,s->program->column);
         s->success = 0;
         return getToken(s);
     }
     
     if(token == IDENTIFIER || token == NUM){
         copyLast(s->program,&(s->lexeme),slice);
-        if(!s->quiet) printf("%s \"%s\" [linha: %lld]\n",STATE_NAMES[token-START],s->lexeme,s->program->line);
+        if(!s->quiet) printf("%s \"%s\" [linha: %zu]\n",STATE_NAMES[token-START],s->lexeme,s->program->line);
     }
     else if(!s->quiet)
-        printf("%s [linha: %lld]\n",STATE_NAMES[token-START],s->program->line);
+        printf("%s [linha: %zu]\n",STATE_NAMES[token-START],s->program->line);
 
     ungetChar(s->program); //go back one char
     s->token = token;

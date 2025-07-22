@@ -40,9 +40,9 @@ void define(intermediary * inter){
 
 void nextLabel(intermediary * inter){
     inter->anonymous_index++;
-    size_t size = snprintf ( NULL, 0, "_t_%lld", inter->anonymous_index);
+    size_t size = snprintf ( NULL, 0, "_t_%zu", inter->anonymous_index);
     inter->anonymous = (char*)realloc(inter->anonymous,size+1);
-    sprintf(inter->anonymous,"_t_%lld",inter->anonymous_index);
+    sprintf(inter->anonymous,"_t_%zu",inter->anonymous_index);
 }
 
 void destroyIntermediary(intermediary * inter){

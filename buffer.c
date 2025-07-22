@@ -19,7 +19,7 @@ buffer * createBuffer(char * path, size_t size){
         exit(1);
     }
     if(size < b->halo){
-        fprintf(stderr,"buffer can't be smaller than %lld",b->halo);
+        fprintf(stderr,"buffer can't be smaller than %zu",b->halo);
         free(b);
         exit(1);
     }
