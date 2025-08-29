@@ -1,2 +1,9 @@
 *object/*
+docs/html
 main
+g--
+resources/
+*.txt
+*.asm
+dgenerate/object/
+.vscode

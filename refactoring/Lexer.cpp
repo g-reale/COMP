@@ -25,23 +25,22 @@ const array<string,(size_t)token_t::_COUNT> Lexer::TOKEN_RULES = []{
     rules[(size_t)token_t::NOT_EQUAL]    = R"(\!\=)";
     rules[(size_t)token_t::NUM]          = R"(\d+)";
     rules[(size_t)token_t::COMMENT]      = R"(\/\*(?:\n|.)*?\*\/)";
-    rules[(size_t)token_t::IF]           = R"(if\W)";
-    rules[(size_t)token_t::INT]          = R"(int\W)";
-    rules[(size_t)token_t::VOID]         = R"(void\W)";
-    rules[(size_t)token_t::ELSE]         = R"(else\W)";
-    rules[(size_t)token_t::WHILE]        = R"(while\W)";
-    rules[(size_t)token_t::RETURN]       = R"(return\W)";
+    rules[(size_t)token_t::LINE_END]     = R"(\n)";
+    rules[(size_t)token_t::IF]           = R"(if(?=\W))";
+    rules[(size_t)token_t::INT]          = R"(int(?=\W))";
+    rules[(size_t)token_t::VOID]         = R"(void(?=\W))";
+    rules[(size_t)token_t::ELSE]         = R"(else(?=\W))";
+    rules[(size_t)token_t::WHILE]        = R"(while(?=\W))";
+    rules[(size_t)token_t::RETURN]       = R"(return(?=\W))";
     rules[(size_t)token_t::IDENTIFIER]   = R"([a-zA-Z]+)";
-    
     return rules;
 }();
 
 const regex Lexer::TOKEN_FINDER = []{
     std::string rules = "";
-    for(size_t i = 0; i < (size_t)token_t::EPS; i++)
+    for(size_t i = 0; i < (size_t)token_t::_COUNT; i++)
         rules += "(" + TOKEN_RULES[i] + ")|";
     rules.pop_back();
-    cout << rules << endl;
     return regex(rules);
 }();
 
@@ -55,6 +54,7 @@ void Lexer::open(const string& path){
     //load the whole file in memory (ugly but makes life easier for the regex)
     code = string(istreambuf_iterator<char>(source), //sometimes i hate the std lib...
                   istreambuf_iterator<char>());
+    line = 0;
     at = code.begin();
     end = code.end();
     source.close();
@@ -70,27 +70,28 @@ parseble_t Lexer::tokenize(bool& finished){
     
     if(at == end){
         finished = true;
-        return parseble_t(token_t::_COUNT,"");
+        return parseble_t(token_t::ERROR,"");
     }
 
     match_results<std::string::iterator> matches;
     if(!regex_search(at, end, matches, TOKEN_FINDER)){
         finished = true;
-        return parseble_t(token_t::_COUNT,"");
+        return parseble_t(token_t::ERROR,"");
     }
 
-    token_t token = token_t::_COUNT;
+    token_t token = token_t::ERROR;
     string lexeme = "";
 
     for(size_t i = 1; i < matches.size(); i++){
         if(!matches[i].matched)
             continue;
-        
+        at = matches[0].second;
         token = (token_t)(i-1);
         lexeme = matches[i].str();
-        at = matches[0].second;
+        line += token == token_t::LINE_END;
     }
     
     return parseble_t(token,lexeme);
 }
 
+size_t Lexer::getLine(){return line;}

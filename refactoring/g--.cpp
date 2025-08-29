@@ -6,8 +6,33 @@ using namespace std;
 
 int main(){
     Lexer lexer("example.cm");
-    
+    Parser parser;
+
     bool done = false;
-    while(!done)
-        lexer.tokenize(done);
+    
+    while(true){
+        
+        parseble_t parseble;
+        try{
+            parseble = lexer.tokenize(done);
+        }
+        catch(runtime_error& ex){
+            cout << "Lexer: " << ex.what();
+        }
+        
+        if(done)
+            break;
+
+        if(parseble.first == token_t::LINE_END || parseble.first == token_t::COMMENT)
+            continue;
+
+        try{
+            parser.parse(parseble);
+        }
+        catch(runtime_error& ex){
+            auto [token,lexeme] = parseble;
+            cout << "Parser on " << token << "(" << lexeme << "):" << lexer.getLine() << ": " << ex.what() << endl;
+            parser.backItUp();
+        }
+    }
 }
