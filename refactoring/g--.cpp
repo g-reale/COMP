@@ -9,6 +9,7 @@ int main(){
     Parser parser;
 
     bool done = false;
+    bool failed = false;
     
     while(true){
         
@@ -18,6 +19,7 @@ int main(){
         }
         catch(runtime_error& ex){
             cout << "Lexer: " << ex.what();
+            failed = true;
         }
         
         if(done)
@@ -32,7 +34,14 @@ int main(){
         catch(runtime_error& ex){
             auto [token,lexeme] = parseble;
             cout << "Parser on " << token << "(" << lexeme << "):" << lexer.getLine() << ": " << ex.what() << endl;
-            parser.backItUp();
+            parser.backup();
+            failed = true;
         }
     }
+
+    if(failed)
+        exit(-1);
+
+    cout << parser.getTree();
+
 }

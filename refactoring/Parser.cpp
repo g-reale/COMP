@@ -9,59 +9,15 @@ using namespace std;
 const pair<Parser::first_t,Parser::grammar_t> Parser::CONSTANTS = []{
     
     string rules = R"(
-        PROGRAM ->               DECLARATION REPETITION_START DECLARATION REPETITION_END;
-        DECLARATION ->           VOID IDENTIFIER VOID_FUN_DECL | INT IDENTIFIER DECLARATION_DECISION;
-        DECLARATION_DECISION ->  VEC_DECL | SCALAR_DECL | INT_FUN_DECL;
-           
-        VEC_DECL ->              OPEN_SQUARE NUM CLOSE_SQUARE SEMI;
-        SCALAR_DECL ->           SEMI;
-        VOID_FUN_DECL ->         OPEN_ROUND PARAMS VOID_COMPOSED_DECL;
-        INT_FUN_DECL ->          OPEN_ROUND PARAMS INT_COMPOSED_DECL;
-    
-        PARAMS ->                VOID CLOSE_ROUND | PARAM REPETITION_START PARAM REPETITION_END;
-        PARAM ->                 INT IDENTIFIER PARAM_DECISION;
-        PARAM_DECISION ->        SCALAR_PARAM | VEC_PARAM;
-        SCALAR_PARAM ->          COMMA | CLOSE_ROUND;
-        VEC_PARAM ->             OPEN_SQUARE CLOSE_SQUARE SCALAR_PARAM;
-           
-        INT_COMPOSED_DECL ->     OPEN_CURLY OPTIONAL_START LOCAL_DECL OPTIONAL_END OPTIONAL_START INT_STATEMENT_LIST OPTIONAL_END CLOSE_CURLY;
-        VOID_COMPOSED_DECL ->    OPEN_CURLY OPTIONAL_START LOCAL_DECL OPTIONAL_END OPTIONAL_START VOID_STATEMENT_LIST OPTIONAL_END CLOSE_CURLY;
-        LOCAL_DECL ->            VAR_DECL REPETITION_START VAR_DECL REPETITION_END;
-        VAR_DECL ->              INT IDENTIFIER VAR_DECISION;
-        VAR_DECISION ->          VEC_DECL | SCALAR_DECL;
-           
-        INT_STATEMENT_LIST ->    INT_STATEMENT REPETITION_START INT_STATEMENT REPETITION_END;
-        INT_STATEMENT ->         EXPRESSION_DECL | INT_COMPOSED_DECL | INT_SELECTION_DECL | INT_ITERATION_DECL | INT_RETURN_DECL;
-        INT_SELECTION_DECL ->    IF OPEN_ROUND CONDITION CLOSE_ROUND INT_IF_BODY OPTIONAL_START ELSE INT_ELSE_BODY OPTIONAL_END;
-        INT_IF_BODY ->           INT_STATEMENT;
-        INT_ELSE_BODY ->         INT_STATEMENT;
-        INT_ITERATION_DECL ->    WHILE OPEN_ROUND CONDITION CLOSE_ROUND INT_STATEMENT;
-        INT_RETURN_DECL ->       RETURN EXPRESSION SEMI;
-           
-        VOID_STATEMENT_LIST ->   VOID_STATEMENT REPETITION_START VOID_STATEMENT REPETITION_END;
-        VOID_STATEMENT ->        EXPRESSION_DECL | VOID_COMPOSED_DECL | VOID_SELECTION_DECL | VOID_ITERATION_DECL | VOID_RETURN_DECL;
-        VOID_SELECTION_DECL ->   IF OPEN_ROUND CONDITION CLOSE_ROUND VOID_IF_BODY OPTIONAL_START ELSE VOID_ELSE_BODY OPTIONAL_END;
-        VOID_IF_BODY ->          VOID_STATEMENT;
-        VOID_ELSE_BODY ->        VOID_STATEMENT;
-        VOID_ITERATION_DECL ->   WHILE OPEN_ROUND CONDITION CLOSE_ROUND VOID_STATEMENT;
-        VOID_RETURN_DECL ->      RETURN SEMI;
-        EXPRESSION_DECL ->       EXPRESSION SEMI | SEMI;
-    
-        CONDITION ->             EXPRESSION;
-        EXPRESSION ->            SIMPLE_EXP REPETITION_START EQUAL SIMPLE_EXP REPETITION_END;
-        VAR ->                   IDENTIFIER OPTIONAL_START OPEN_SQUARE EXPRESSION CLOSE_SQUARE OPTIONAL_END;
-        SIMPLE_EXP ->            SUM_EXP OPTIONAL_START RELATIONAL SUM_EXP OPTIONAL_END;
-        RELATIONAL ->            LESS_EQ | LOGICAL_EQ | MORE_EQ | LOGICAL_EQ | NOT_EQUAL | LESS | MORE;
-        SUM_EXP ->               TERM REPETITION_START PLUS_MINUS TERM REPETITION_END;
-        PLUS_MINUS ->            SUM | SUB;
-        TERM ->                  FACTOR REPETITION_START MUL_DIV FACTOR REPETITION_END;
-        MUL_DIV ->               MUL | DIV;
-        FACTOR ->                OPEN_ROUND EXPRESSION CLOSE_ROUND | IDENTIFIER OPTIONAL_START ACTIVATION_DECISION OPTIONAL_END | NUM;
-        ACTIVATION_DECISION ->   FUNCTION_ACTIVATION | VECTOR_ACTIVATION;
-        VECTOR_ACTIVATION ->     OPEN_SQUARE EXPRESSION CLOSE_SQUARE;
-        FUNCTION_ACTIVATION ->   OPEN_ROUND ARGUMENT_DECISION;
-        ARGUMENT_DECISION ->     CLOSE_ROUND | ARGUMENT REPETITION_START COMMA ARGUMENT REPETITION_END CLOSE_ROUND;
-        ARGUMENT ->              EXPRESSION;
+        PROGRAM -> DECLARATION REPETITION_START DECLARATION REPETITION_END;
+        DECLARATION -> INT IDENTIFIER DECLARATION_DECISION | VOID IDENTIFIER VOID_FUN_DECL;
+        DECLARATION_DECISION -> OPEN_SQUARE NUM CLOSE_SQUARE SEMI | SEMI | OPEN_ROUND PARAMS OPEN_CURLY;
+        VOID_FUN_DECL -> OPEN_ROUND PARAMS OPEN_CURLY;
+
+        PARAMS -> VOID | PARAM REPETITION_START PARAM REPETITION_END;
+        PARAM -> INT IDENTIFIER PARAM_DECISION;
+        PARAM_DECISION -> OPEN_SQUARE CLOSE_SQUARE PARAM_END | PARAM_END;
+        PARAM_END -> CLOSE_ROUND | COMMA;
         )";
     
     istringstream slicer(rules);
@@ -272,21 +228,13 @@ symbol_t Parser::ctxNext(){
 
 symbol_t Parser::ctxCurrent(){
     while(true){
-
-        // if(contexts.empty()) 
-        //     throw runtime_error("derivation stack empty");
         
         if(!syntax_tree.depth) 
             throw runtime_error("derivation stack empty");
-        
-        if(context->at < context->rule->size()){
-            cout << syntax_tree << endl;
+    
+        if(context->at < context->rule->size())
             break;
-        }
 
-        // contexts.pop_back();
-        // context = &contexts.back();
-        
         syntax_tree.pop();
         context = syntax_tree.top;
     }
@@ -300,25 +248,20 @@ symbol_t Parser::ctxPush(nonterminal_t nonterminal, token_t token){
     if(rule->empty())
         throw runtime_error("unable to find rule for token");
 
-    // contexts.push_back(
-    //     (rule_ctx_t){
-    //         .rule = rule,
-    //         .at = 0,
-    //         .repetition_start = 0,
-    //     }
-    // );
-    // context = &contexts.back();
-    // return (*context->rule)[0];
-
     syntax_tree.push(
         (rule_ctx_t){
             .rule = rule,
+            .lexemes = lex_seq_t(rule->size()),
             .at = 0,
             .repetition_start = 0,
         }
     );
     context = syntax_tree.top;
     return (*context->rule)[0];
+}
+
+void Parser::ctxSave(const std::string& lexeme){
+    context->lexemes[context->at] = lexeme;
 }
 
 bool Parser::inFirst(symbol_t symbol, token_t token){
@@ -331,7 +274,6 @@ bool Parser::inFirst(symbol_t symbol, token_t token){
 void Parser::parse(const parseble_t& parseble){
 
     auto [token,lexeme] = parseble;
-    cout << "-/-" << token << "-/-" << endl << endl;
     symbol_t expected = ctxCurrent();
 
     while(holds_alternative<nonterminal_t>(expected)){
@@ -370,13 +312,20 @@ void Parser::parse(const parseble_t& parseble){
 
     token_t correct = get<token_t>(expected);
     if(correct == token){
+        
+        if(token == token_t::IDENTIFIER || 
+           token == token_t::NUM
+        )
+            ctxSave(lexeme);
+
         ctxNext();
 
-        // if(token == token_t::SEMI ||
-        //    token == token_t::OPEN_CURLY ||
-        //    token == token_t::CLOSE_CURLY 
-        // )
-        //     backup_tree.update(syntax_tree);
+        if(token == token_t::SEMI ||
+           token == token_t::OPEN_CURLY ||
+           token == token_t::CLOSE_CURLY 
+        )
+            backup_tree.update(syntax_tree);
+
         return;
     }
 
@@ -384,13 +333,13 @@ void Parser::parse(const parseble_t& parseble){
 }
 
 bool Parser::rule_ctx_t::operator==(const rule_ctx_t& other) const{
-    return rule == other.rule
-        && at == other.at
-        && repetition_start == other.repetition_start;
+    return rule == other.rule &&
+           at == other.at &&
+           repetition_start == other.repetition_start;
 }
 
 bool Parser::rule_ctx_t::operator!=(const rule_ctx_t& other) const{
-    return rule != other.rule;
+    return !(*this == other);
 }
 
 ostream& operator<<(ostream& os, const Parser::rule_ctx_t& context){
@@ -409,20 +358,72 @@ ostream& operator<<(ostream& os, const Parser::rule_ctx_t& context){
     return os;
 }
 
-void Parser::updateVersion(){
-    // size_t common = std::min(backup_contexts.size(), contexts.size());
-    // while (0 < common) {
-    //     if (backup_contexts[common - 1] == contexts[common - 1])
-    //         break;
-    //     common--;
-    // }
-    // backup_contexts.resize(contexts.size());
-    // copy(contexts.begin() + common, contexts.end(), backup_contexts.begin() + common);
+ostream& operator<<(ostream& os, const Parser::par_seq_t& sequence){
+    
+    if(sequence.empty()){
+        os << "EMPTY";
+        return os;
+    }
+
+    for(parseble_t parseble : sequence){
+        auto [token,lexeme] = parseble;
+        os << parseble.first;
+        if(!lexeme.empty())
+            os << "(" << lexeme << ")";
+        os << " ";
+    }
+    return os;
 }
 
-void Parser::backItUp(){
-    // contexts = backup_contexts;
-    // context = &contexts.back();
-    // syntax_tree.update(backup_tree);
-    // context = syntax_tree.top;
+void Parser::backup(){
+    syntax_tree.update(backup_tree);
+    context = syntax_tree.top;
+}
+
+tree_t<Parser::par_seq_t> Parser::getTree(){
+
+    static const set<token_t> BLACKLIST = {
+        // token_t::CLOSE_CURLY,
+        // token_t::OPEN_CURLY,
+        // token_t::OPEN_ROUND,
+        token_t::CLOSE_ROUND,
+        token_t::SEMI,
+        token_t::COMMA,
+        token_t::VOID,
+        token_t::INT,
+        token_t::CLOSE_SQUARE
+    };
+    
+    tree_t<par_seq_t> abstract_tree{par_seq_t()};
+    function<void(tree_t<rule_ctx_t>::node_t * from)> traverse = [&](const tree_t<rule_ctx_t>::node_t * from){
+        par_seq_t parsebles;
+    
+        if(from->data.rule != nullptr){
+            const rule_t & rule = (*from->data.rule);
+            const lex_seq_t & lexemes = from->data.lexemes;
+            for(size_t i = 0; i < rule.size(); i++){
+                symbol_t symbol = rule[i];
+                const string & lexeme = lexemes[i];
+
+                if(holds_alternative<nonterminal_t>(symbol))
+                    continue;
+                token_t token = get<token_t>(symbol);
+                if(BLACKLIST.count(token))
+                    continue;
+                parsebles.push_back(parseble_t(token,lexeme));
+            }
+        }
+    
+        if(!parsebles.empty())
+            abstract_tree.push(parsebles);
+        
+        for(tree_t<rule_ctx_t>::node_t * child : from->children)
+            traverse(child);
+        
+        if(!parsebles.empty())
+            abstract_tree.pop();
+    };
+    
+    traverse(syntax_tree.root);
+    return abstract_tree;
 }

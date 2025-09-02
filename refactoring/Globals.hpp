@@ -116,6 +116,7 @@ using parseble_t = std::pair<token_t,std::string>;
     NONTERMINAL(FUNCTION_ACTIVATION)\
     NONTERMINAL(ARGUMENT_DECISION)\
     NONTERMINAL(ARGUMENT)\
+    NONTERMINAL(PARAM_END)\
     NONTERMINAL(_COUNT)\
     NONTERMINAL(OPTIONAL_START)\
     NONTERMINAL(OPTIONAL_END)\
@@ -170,7 +171,8 @@ class tree_t {
 public:
     struct node_t {
         node_t* parent;
-        std::vector<node_t*> children;
+        std::list<node_t*>::iterator cursor;
+        std::list<node_t*> children;
         T data;
     };
     
@@ -199,22 +201,51 @@ public:
         return os;
     }
 
-    node_t * insert(node_t* parent, const T& data) {
+    node_t * insert(node_t* parent, T data) {
         node_t* child = new node_t{
             parent,
+            0,
             {},
             data
         };
+        child->cursor = child->children.begin();
         parent->children.push_back(child);
         arena.push_back(child);
         return child;
     }
 
-    void push(T data){
+    node_t * insert(const T& data){
+        return insert(head,data);
+    }
+
+    T* current() {
+        if (head->cursor != head->children.end())
+            return &(*head->cursor)->data;
+    
+        if (head->parent) {
+            pop();
+            return current();
+        }
+
+        return &head->data;
+    }
+    
+    T* operator++() {
+        if (head->cursor != head->children.end())
+            head->cursor++;
+        return current();
+    }
+    
+    T* operator--() {
+        if (head->cursor != head->children.begin())
+            head->cursor--;
+        return current();
+    }
+
+    void push(const T& data){
         depth++;
         head = insert(head,data);
         top = &head->data;
-        std::cout << (*this) << std::endl;
     }
 
     void pop(){
@@ -222,36 +253,60 @@ public:
             depth--;
             head = head->parent;
             top = &head->data;
-            std::cout << (*this) << std::endl;
         }
     }
 
     void update(tree_t &other) {
-        while (depth < other.depth)
-            other.pop();
-        while (other.depth < depth)
-            pop();
-        while (head->data != other.head->data) {
-            pop();
-            other.pop();
+
+        node_t * at = other.head;
+        size_t other_depth = other.depth;
+
+        while (depth < other_depth){
+            at = at->parent;
+            other_depth--;
         }
-        std::function<void(node_t*)> replay = [this, &replay](node_t* from) {
+        while (other_depth < depth){
+            pop();
+        }
+        while (head->data != at->data){
+            pop();
+            at = at->parent;
+            other_depth--;
+        }
+        
+        head->children.clear(); //soft deletion, will cause excessive memory allocation
+        node_t * new_head = nullptr;
+        size_t new_depth = 0;
+
+        std::function<void(node_t*)> replay = [this, &replay, &other, &new_head, &new_depth](node_t* from) {
+            
+            if(from == other.head){
+                new_depth = depth;
+                new_head = head;
+            }
+            
             for (node_t* child : from->children) {
                 push(child->data);
                 replay(child);
                 pop();
             }
         };
-        replay(other.head);
+
+        replay(at);
+        head = new_head;
+        depth = new_depth;
+        top = &head->data;
     }
     
     tree_t(T data){
         node_t* child = new node_t{
             nullptr,
+            0,
             {},
             data
         };
         arena.push_back(child);
+        child->cursor = child->children.begin();
         root = child;
         head = child;
         depth = 0;
@@ -263,5 +318,4 @@ public:
         arena.clear();
     }
 };
-
 #endif
