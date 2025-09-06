@@ -35,13 +35,11 @@ class Parser{
             bool operator!=(const rule_ctx_t& other) const;
         };
     private:
-        tree_t<rule_ctx_t> syntax_tree;
-        tree_t<rule_ctx_t> backup_tree;
-        rule_ctx_t * context;
-        symbol_t ctxPush(nonterminal_t nonterminal, token_t token);
-        symbol_t ctxCurrent();
-        symbol_t ctxNext();
-        void ctxSave(const std::string& lexeme);
+        tree_t<symbol_t> syntax_tree;
+        symbol_t push(nonterminal_t nonterminal, token_t token);
+        // symbol_t ctxCurrent();
+        // symbol_t ctxNext();
+        // void ctxSave(const std::string& lexeme);
     public:
         Parser();
         void parse(const parseble_t& parseble);
@@ -50,6 +48,6 @@ class Parser{
         tree_t<par_seq_t> getTree();
 };
 
-std::ostream& operator<<(std::ostream& os, const Parser::rule_ctx_t& context);
-std::ostream& operator<<(std::ostream& os, const Parser::par_seq_t& sequence);
+// std::ostream& operator<<(std::ostream& os, const Parser::rule_ctx_t& context);
+// std::ostream& operator<<(std::ostream& os, const Parser::par_seq_t& sequence);
 #endif

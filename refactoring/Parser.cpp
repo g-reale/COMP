@@ -215,53 +215,46 @@ const Parser::first_t & Parser::FIRST = []{return CONSTANTS.first;}();
 const Parser::grammar_t & Parser::GRAMMAR = []{return CONSTANTS.second;}();
 
 Parser::Parser()
-: syntax_tree((rule_ctx_t){.rule = nullptr, .at = 0, .repetition_start = 0}), 
-  backup_tree((rule_ctx_t){.rule = nullptr, .at = 0, .repetition_start = 0})
+// : syntax_tree((rule_ctx_t){.rule = nullptr, .at = 0, .repetition_start = 0}), 
+//   backup_tree((rule_ctx_t){.rule = nullptr, .at = 0, .repetition_start = 0})
 {
-    ctxPush(nonterminal_t::PROGRAM,token_t::INT);
+    // ctxPush(nonterminal_t::PROGRAM,token_t::INT);
 }
 
-symbol_t Parser::ctxNext(){
-    context->at++;
-    return ctxCurrent();
-}
+// symbol_t Parser::ctxNext(){
+//     context->at++;
+//     return ctxCurrent();
+// }
 
-symbol_t Parser::ctxCurrent(){
-    while(true){
+// symbol_t Parser::ctxCurrent(){
+//     while(true){
         
-        if(!syntax_tree.depth) 
-            throw runtime_error("derivation stack empty");
+//         if(!syntax_tree.depth) 
+//             throw runtime_error("derivation stack empty");
     
-        if(context->at < context->rule->size())
-            break;
+//         if(context->at < context->rule->size())
+//             break;
 
-        syntax_tree.pop();
-        context = syntax_tree.top;
-    }
-    return (*context->rule)[context->at];
-}
+//         syntax_tree.pop();
+//         context = syntax_tree.top;
+//     }
+//     return (*context->rule)[context->at];
+// }
 
-symbol_t Parser::ctxPush(nonterminal_t nonterminal, token_t token){
+symbol_t Parser::push(nonterminal_t nonterminal, token_t token){
 
     const rule_t * rule = &GRAMMAR[(size_t)nonterminal][(size_t)token];
 
     if(rule->empty())
         throw runtime_error("unable to find rule for token");
 
-    syntax_tree.push(
-        (rule_ctx_t){
-            .rule = rule,
-            .lexemes = lex_seq_t(rule->size()),
-            .at = 0,
-            .repetition_start = 0,
-        }
-    );
-    context = syntax_tree.top;
-    return (*context->rule)[0];
-}
-
-void Parser::ctxSave(const std::string& lexeme){
-    context->lexemes[context->at] = lexeme;
+    syntax_tree.down();
+    for(symbol_t symbol : *rule){
+        syntax_tree.insert(symbol);
+        syntax_tree.left();
+    }
+    syntax_tree.end();
+    return *syntax_tree.current();
 }
 
 bool Parser::inFirst(symbol_t symbol, token_t token){
@@ -274,37 +267,57 @@ bool Parser::inFirst(symbol_t symbol, token_t token){
 void Parser::parse(const parseble_t& parseble){
 
     auto [token,lexeme] = parseble;
-    symbol_t expected = ctxCurrent();
+    symbol_t expected = *syntax_tree.current();
 
     while(holds_alternative<nonterminal_t>(expected)){
         
         nonterminal_t nonterminal = get<nonterminal_t>(expected);
         switch (nonterminal){
             
-            case nonterminal_t::REPETITION_START:
-                context->repetition_start = context->at;
+            // case nonterminal_t::REPETITION_START:
+            //     context->repetition_start = context->at;
             
-            case nonterminal_t::OPTIONAL_START:
-                expected = ctxNext();
-                if(!inFirst(expected,token)){ // skip ebnf block
-                    symbol_t end = nonterminal == nonterminal_t::OPTIONAL_START ? nonterminal_t::OPTIONAL_END : nonterminal_t::REPETITION_END;
-                    while(end != ctxNext());
-                    expected = ctxNext();
+            // case nonterminal_t::OPTIONAL_START:
+            //     expected = ctxNext();
+            //     if(!inFirst(expected,token)){ // skip ebnf block
+            //         symbol_t end = nonterminal == nonterminal_t::OPTIONAL_START ? nonterminal_t::OPTIONAL_END : nonterminal_t::REPETITION_END;
+            //         while(end != ctxNext());
+            //         expected = ctxNext();
+            //     }
+            //     break;
+            
+            // case nonterminal_t::REPETITION_END:
+            //     context->at = context->repetition_start;
+            //     expected = ctxCurrent();
+            //     break;
+            
+            // case nonterminal_t::OPTIONAL_END:
+            //     expected = ctxNext();
+            //     break;
+
+            case nonterminal_t::REPETITION_START:{
+                
+                auto checkpoint = syntax_tree.checkpoint();
+                syntax_tree.left(checkpoint);
+                expected = *syntax_tree.current(checkpoint);
+
+                if(!inFirst(expected,token)){//skip ebnf
+                    do{
+                        expected = *syntax_tree.current(checkpoint);
+                        syntax_tree.remove(checkpoint);
+                        syntax_tree.left(checkpoint);
+                    }while(expected != (symbol_t)nonterminal_t::REPETITION_END);
+                    syntax_tree.checkpoint(checkpoint);
+                    expected = *syntax_tree.current();
+                    continue;
                 }
-                break;
-            
-            case nonterminal_t::REPETITION_END:
-                context->at = context->repetition_start;
-                expected = ctxCurrent();
-                break;
-            
-            case nonterminal_t::OPTIONAL_END:
-                expected = ctxNext();
-                break;
+                
+                syntax_tree
+
+            } break;
                 
             default:
-                context->at++;
-                expected = ctxPush(nonterminal,token);
+                expected = push(nonterminal,token);
                 break;
         }
             

@@ -3,6 +3,7 @@
 
 #include <list>
 #include <string>
+#include <memory>
 #include <utility>
 #include <variant>
 #include <iostream>
@@ -166,156 +167,109 @@ inline symbol_t symbolFromString(const std::string& string){
     return symbol_t();
 }
 
-template<typename T>
-class tree_t {
-public:
+template<typename data_t>
+class tree_t{
+    public:
+
     struct node_t {
-        node_t* parent;
-        std::list<node_t*>::iterator cursor;
-        std::list<node_t*> children;
-        T data;
-    };
-    
-    T * top;
-    size_t depth;
-    node_t * root;
-    node_t * head;
-    std::list<node_t*> arena;
-
-    friend std::ostream& operator<<(std::ostream& os, const tree_t<T>& tree) {
-        if (!tree.root) return os;
-
-        std::function<void(node_t*, std::string)> traverse;
-        traverse = [&](node_t* node, std::string indent) {
-            
-            if(node == tree.head)
-                os << tree.depth << "->" << indent << node->data << "\n";
-            else
-                os << indent << node->data << "\n";
-
-            for (auto* child : node->children)
-                traverse(child, indent + "\t");
-        };
-
-        traverse(tree.root, "");
-        return os;
-    }
-
-    node_t * insert(node_t* parent, T data) {
-        node_t* child = new node_t{
-            parent,
-            0,
-            {},
-            data
-        };
-        child->cursor = child->children.begin();
-        parent->children.push_back(child);
-        arena.push_back(child);
-        return child;
-    }
-
-    node_t * insert(const T& data){
-        return insert(head,data);
-    }
-
-    T* current() {
-        if (head->cursor != head->children.end())
-            return &(*head->cursor)->data;
-    
-        if (head->parent) {
-            pop();
-            return current();
-        }
-
-        return &head->data;
-    }
-    
-    T* operator++() {
-        if (head->cursor != head->children.end())
-            head->cursor++;
-        return current();
-    }
-    
-    T* operator--() {
-        if (head->cursor != head->children.begin())
-            head->cursor--;
-        return current();
-    }
-
-    void push(const T& data){
-        depth++;
-        head = insert(head,data);
-        top = &head->data;
-    }
-
-    void pop(){
-        if(depth){
-            depth--;
-            head = head->parent;
-            top = &head->data;
-        }
-    }
-
-    void update(tree_t &other) {
-
-        node_t * at = other.head;
-        size_t other_depth = other.depth;
-
-        while (depth < other_depth){
-            at = at->parent;
-            other_depth--;
-        }
-        while (other_depth < depth){
-            pop();
-        }
-        while (head->data != at->data){
-            pop();
-            at = at->parent;
-            other_depth--;
-        }
+        using node_list_t = std::list<std::unique_ptr<node_t>>;
+        using iter_t = typename node_list_t::iterator;
         
-        head->children.clear(); //soft deletion, will cause excessive memory allocation
-        node_t * new_head = nullptr;
-        size_t new_depth = 0;
+        data_t data;
+        node_t* parent = nullptr;
+        node_list_t children = {};
+        iter_t self;
+    };
 
-        std::function<void(node_t*)> replay = [this, &replay, &other, &new_head, &new_depth](node_t* from) {
-            
-            if(from == other.head){
-                new_depth = depth;
-                new_head = head;
-            }
-            
-            for (node_t* child : from->children) {
-                push(child->data);
-                replay(child);
-                pop();
-            }
-        };
-
-        replay(at);
-        head = new_head;
-        depth = new_depth;
-        top = &head->data;
-    }
+    node_t root;
+    node_t * focused;
+    typename node_t::iter_t cursor;
     
-    tree_t(T data){
-        node_t* child = new node_t{
-            nullptr,
-            0,
-            {},
-            data
-        };
-        arena.push_back(child);
-        child->cursor = child->children.begin();
-        root = child;
-        head = child;
-        depth = 0;
+    tree_t(data_t data){
+        root.data = data;
+        focused = &root;
+        cursor = root.children.begin();
     }
 
-    ~tree_t() {
-        for (node_t* node : arena)
-            delete node;
-        arena.clear();
+    void insert(data_t data, typedef node_t::iter_t & iterator = cursor){
+
+        if(!focused->children.size()){
+            typename node_t::iter_t child = focused->children.insert(focused->children.begin(),std::make_unique<node_t>());
+            *(*child) = (node_t){
+                .data = data,
+                .parent = focused,
+                .self = child
+            };
+            iterator = focused->children.begin();
+            return;
+        }
+
+        typename node_t::iter_t child = focused->children.insert(iterator,std::make_unique<node_t>());
+        *(*child) = (node_t){
+            .data = data,
+            .parent = focused,
+            .self = child
+        };
     }
+
+    bool left(typedef node_t::iter_t & iterator = cursor){
+        if(iterator != focused->children.begin()){
+            iterator--;
+            return true;
+        }
+        return false;
+    }
+
+    bool right(typedef node_t::iter_t & iterator = cursor){
+        if(std::next(iterator) != focused->children.end()){
+            iterator++;
+            return true;
+        }
+        return false;
+    }
+
+    bool down(typedef node_t::iter_t & iterator = cursor){
+        if(!focused->children.empty()){
+            focused = (*iterator).get();
+            iterator = focused->children.begin();
+            return true;
+        }
+        return false;
+    }
+
+    bool up(typedef node_t::iter_t & iterator = cursor){
+        if(focused->parent){
+            iterator = focused->self;
+            focused = focused->parent;
+            return true;
+        }
+        return false;
+    }
+
+    void end(typedef node_t::iter_t & iterator = cursor){
+        iterator = std::prev(focused->children.end());
+    }
+
+    data_t * current(typedef node_t::iter_t & iterator = cursor){
+        return &((*iterator)->data);
+    }
+
+    typename node_t::iter_t checkpoint(){
+        return cursor;
+    }
+
+    void checkpoint(typename node_t::iter_t save){
+        cursor = save;
+    }
+
+    bool remove(typedef node_t::iter_t & iterator = cursor){
+        if(iterator != focused->children.end()){
+            iterator = focused->children.erase(iterator);
+            return true;
+        }
+        return false;
+    }
+
 };
+
 #endif
