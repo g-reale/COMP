@@ -191,7 +191,7 @@ class tree_t{
         cursor = root.children.begin();
     }
 
-    void insert(data_t data, typedef node_t::iter_t & iterator = cursor){
+    void insert(data_t data, typename node_t::iter_t & iterator){
 
         if(!focused->children.size()){
             typename node_t::iter_t child = focused->children.insert(focused->children.begin(),std::make_unique<node_t>());
@@ -212,7 +212,24 @@ class tree_t{
         };
     }
 
-    bool left(typedef node_t::iter_t & iterator = cursor){
+    void insert(data_t data){
+        insert(data,cursor);
+    }
+
+    void insert(const std::vector<data_t>& data, typename node_t::iter_t & iterator){
+        typename node_t::iter_t checkpoint = iterator;
+
+        for(const data_t & element : data){
+            insert(element,checkpoint);
+            left(checkpoint);
+        }
+    }
+
+    void insert(const std::vector<data_t>& data){
+        insert(data,cursor);
+    }
+
+    bool left(typename node_t::iter_t & iterator){
         if(iterator != focused->children.begin()){
             iterator--;
             return true;
@@ -220,38 +237,52 @@ class tree_t{
         return false;
     }
 
-    bool right(typedef node_t::iter_t & iterator = cursor){
-        if(std::next(iterator) != focused->children.end()){
+    bool left(){
+        return left(cursor);
+    }
+
+    bool right(typename node_t::iter_t & iterator){
+        if(iterator != focused->children.end())
             iterator++;
-            return true;
-        }
-        return false;
+        return iterator == focused->children.end();
     }
 
-    bool down(typedef node_t::iter_t & iterator = cursor){
+    bool right(){
+        return right(cursor);
+    }
+
+    bool down(){
         if(!focused->children.empty()){
-            focused = (*iterator).get();
-            iterator = focused->children.begin();
+            focused = (*cursor).get();
+            cursor = focused->children.end();
             return true;
         }
         return false;
     }
 
-    bool up(typedef node_t::iter_t & iterator = cursor){
+    bool up(){
         if(focused->parent){
-            iterator = focused->self;
+            cursor = focused->self;
             focused = focused->parent;
             return true;
         }
         return false;
     }
 
-    void end(typedef node_t::iter_t & iterator = cursor){
+    void end(typename node_t::iter_t & iterator){
         iterator = std::prev(focused->children.end());
     }
 
-    data_t * current(typedef node_t::iter_t & iterator = cursor){
-        return &((*iterator)->data);
+    void end(){
+        return end(cursor);
+    }
+
+    data_t current(typename node_t::iter_t & iterator){
+        return ((*iterator)->data);
+    }
+
+    data_t current(){
+        return current(cursor);
     }
 
     typename node_t::iter_t checkpoint(){
@@ -262,7 +293,7 @@ class tree_t{
         cursor = save;
     }
 
-    bool remove(typedef node_t::iter_t & iterator = cursor){
+    bool remove(typename node_t::iter_t & iterator){
         if(iterator != focused->children.end()){
             iterator = focused->children.erase(iterator);
             return true;
@@ -270,6 +301,39 @@ class tree_t{
         return false;
     }
 
+    bool remove(){
+        return remove(cursor);
+    }
+
+    bool next(){
+        bool success;
+        if(!(success = left()))
+            if((success = up()))
+                success = left();
+        return success;
+    }
+
 };
+
+template<typename data_t>
+std::ostream& operator<<(std::ostream& os, const tree_t<data_t>& tree){
+    
+    std::string indent = "";
+    std::function<void(const typename tree_t<data_t>::node_t *)> traverse = [&](const typename tree_t<data_t>::node_t * node){
+        if(node->self == tree.cursor)
+            os << indent << "[" << node->data << "]" << std::endl;
+        else if(node == tree.focused)
+            os << indent << "-" << node->data << "-" << std::endl;
+        else
+        os << indent << node->data << std::endl;
+        
+        indent += "\t";
+        for(const auto& child : node->children)
+            traverse(child.get());
+        indent.pop_back();
+    };
+    traverse(&tree.root);
+    return os;
+}
 
 #endif

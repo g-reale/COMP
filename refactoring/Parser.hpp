@@ -36,16 +36,19 @@ class Parser{
         };
     private:
         tree_t<symbol_t> syntax_tree;
+        void remove(symbol_t end);
+        void copy(symbol_t end);
         symbol_t push(nonterminal_t nonterminal, token_t token);
+        symbol_t next();
         // symbol_t ctxCurrent();
         // symbol_t ctxNext();
         // void ctxSave(const std::string& lexeme);
     public:
         Parser();
         void parse(const parseble_t& parseble);
-        void backup();
-        using par_seq_t = std::vector<parseble_t>;
-        tree_t<par_seq_t> getTree();
+        // void backup();
+        // using par_seq_t = std::vector<parseble_t>;
+        // tree_t<par_seq_t> getTree();
 };
 
 // std::ostream& operator<<(std::ostream& os, const Parser::rule_ctx_t& context);

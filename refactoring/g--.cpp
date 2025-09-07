@@ -1,58 +1,58 @@
 #include "Lexer.hpp"
-// #include "Parser.hpp"
+#include "Parser.hpp"
 #include "Globals.hpp"
 
 using namespace std;
 
 int main(){
     Lexer lexer("example.cm");
-    // Parser parser;
+    Parser parser;
 
     bool done = false;
     bool failed = false;
     
-    tree_t<int> test(-1);
-    test.insert(0);
-    test.left();
-    test.insert(1);
-    test.left();
-    test.insert(2);
-    test.left();
-    test.insert(3);
-    test.left();
-    test.insert(4);
-    test.left();
-    test.insert(5);
-    test.left();
-    test.insert(6);
-    test.left();
-    test.insert(7);
+    // tree_t<int> test(-1);
+    // test.insert(0);
+    // test.left();
+    // test.insert(1);
+    // test.left();
+    // test.insert(2);
+    // test.left();
+    // test.insert(3);
+    // test.left();
+    // test.insert(4);
+    // test.left();
+    // test.insert(5);
+    // test.left();
+    // test.insert(6);
+    // test.left();
+    // test.insert(7);
 
-    test.end();
+    // test.end();
 
-    test.left();
-    test.remove();
-    test.left();
-    test.remove();
-    cout << (*test.cursor)->data << endl << endl;
+    // test.left();
+    // test.remove();
+    // test.left();
+    // test.remove();
+    // cout << (*test.cursor)->data << endl << endl;
 
-    test.end();
+    // test.end();
 
-    cout << (*test.cursor)->data << endl;
-    test.left();
-    cout << (*test.cursor)->data << endl;
-    test.left();
-    cout << (*test.cursor)->data << endl;
-    test.left();
-    cout << (*test.cursor)->data << endl;
-    test.left();
-    cout << (*test.cursor)->data << endl;
-    test.left();
-    cout << (*test.cursor)->data << endl;
-    test.left();
-    cout << (*test.cursor)->data << endl;
-    test.left();
-    cout << (*test.cursor)->data << endl;
+    // cout << (*test.cursor)->data << endl;
+    // test.left();
+    // cout << (*test.cursor)->data << endl;
+    // test.left();
+    // cout << (*test.cursor)->data << endl;
+    // test.left();
+    // cout << (*test.cursor)->data << endl;
+    // test.left();
+    // cout << (*test.cursor)->data << endl;
+    // test.left();
+    // cout << (*test.cursor)->data << endl;
+    // test.left();
+    // cout << (*test.cursor)->data << endl;
+    // test.left();
+    // cout << (*test.cursor)->data << endl;
     
 
     while(true){
@@ -71,6 +71,8 @@ int main(){
 
         if(parseble.first == token_t::LINE_END || parseble.first == token_t::COMMENT)
             continue;
+
+        parser.parse(parseble);
 
         // try{
         //     parser.parse(parseble);

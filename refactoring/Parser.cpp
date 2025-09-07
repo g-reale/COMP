@@ -214,47 +214,57 @@ const pair<Parser::first_t,Parser::grammar_t> Parser::CONSTANTS = []{
 const Parser::first_t & Parser::FIRST = []{return CONSTANTS.first;}();
 const Parser::grammar_t & Parser::GRAMMAR = []{return CONSTANTS.second;}();
 
-Parser::Parser()
-// : syntax_tree((rule_ctx_t){.rule = nullptr, .at = 0, .repetition_start = 0}), 
-//   backup_tree((rule_ctx_t){.rule = nullptr, .at = 0, .repetition_start = 0})
-{
-    // ctxPush(nonterminal_t::PROGRAM,token_t::INT);
+Parser::Parser() : syntax_tree(token_t::ERROR){
+    push(nonterminal_t::PROGRAM,token_t::INT);
 }
-
-// symbol_t Parser::ctxNext(){
-//     context->at++;
-//     return ctxCurrent();
-// }
-
-// symbol_t Parser::ctxCurrent(){
-//     while(true){
-        
-//         if(!syntax_tree.depth) 
-//             throw runtime_error("derivation stack empty");
-    
-//         if(context->at < context->rule->size())
-//             break;
-
-//         syntax_tree.pop();
-//         context = syntax_tree.top;
-//     }
-//     return (*context->rule)[context->at];
-// }
 
 symbol_t Parser::push(nonterminal_t nonterminal, token_t token){
 
-    const rule_t * rule = &GRAMMAR[(size_t)nonterminal][(size_t)token];
+    const rule_t & rule = GRAMMAR[(size_t)nonterminal][(size_t)token];
 
-    if(rule->empty())
+    if(rule.empty())
         throw runtime_error("unable to find rule for token");
 
     syntax_tree.down();
-    for(symbol_t symbol : *rule){
-        syntax_tree.insert(symbol);
-        syntax_tree.left();
+    syntax_tree.insert(rule);
+    syntax_tree.left();
+    cout << syntax_tree << endl;
+    return syntax_tree.current();
+}
+
+symbol_t Parser::next(){
+    
+    if(!syntax_tree.next())
+        throw runtime_error("reached derivation tree end");
+
+    return syntax_tree.current();
+}
+
+void Parser::copy(symbol_t end){
+    
+    auto read_head = syntax_tree.checkpoint();
+    auto write_head = read_head;
+    syntax_tree.right();
+    syntax_tree.left(read_head);
+    
+    symbol_t symbol = syntax_tree.current(read_head);
+    while(symbol != end){
+        syntax_tree.insert(symbol,write_head);
+        syntax_tree.left(read_head);
+        symbol = syntax_tree.current(read_head);
     }
-    syntax_tree.end();
-    return *syntax_tree.current();
+}
+
+void Parser::remove(symbol_t end){
+    auto destroy_head = syntax_tree.checkpoint();
+    syntax_tree.right();
+
+    symbol_t symbol; 
+    do{
+        symbol = syntax_tree.current(destroy_head);
+        syntax_tree.remove(destroy_head);
+        syntax_tree.left(destroy_head);
+    }while(symbol != end);
 }
 
 bool Parser::inFirst(symbol_t symbol, token_t token){
@@ -263,57 +273,50 @@ bool Parser::inFirst(symbol_t symbol, token_t token){
     return symbol == symbol_t(token);
 }
 
-
 void Parser::parse(const parseble_t& parseble){
 
     auto [token,lexeme] = parseble;
-    symbol_t expected = *syntax_tree.current();
+    symbol_t expected = syntax_tree.current();
 
     while(holds_alternative<nonterminal_t>(expected)){
         
         nonterminal_t nonterminal = get<nonterminal_t>(expected);
         switch (nonterminal){
-            
-            // case nonterminal_t::REPETITION_START:
-            //     context->repetition_start = context->at;
-            
-            // case nonterminal_t::OPTIONAL_START:
-            //     expected = ctxNext();
-            //     if(!inFirst(expected,token)){ // skip ebnf block
-            //         symbol_t end = nonterminal == nonterminal_t::OPTIONAL_START ? nonterminal_t::OPTIONAL_END : nonterminal_t::REPETITION_END;
-            //         while(end != ctxNext());
-            //         expected = ctxNext();
-            //     }
-            //     break;
-            
-            // case nonterminal_t::REPETITION_END:
-            //     context->at = context->repetition_start;
-            //     expected = ctxCurrent();
-            //     break;
-            
-            // case nonterminal_t::OPTIONAL_END:
-            //     expected = ctxNext();
-            //     break;
 
             case nonterminal_t::REPETITION_START:{
-                
-                auto checkpoint = syntax_tree.checkpoint();
-                syntax_tree.left(checkpoint);
-                expected = *syntax_tree.current(checkpoint);
+                syntax_tree.left();
+                symbol_t look_ahead = syntax_tree.current();
+                syntax_tree.right();
 
-                if(!inFirst(expected,token)){//skip ebnf
-                    do{
-                        expected = *syntax_tree.current(checkpoint);
-                        syntax_tree.remove(checkpoint);
-                        syntax_tree.left(checkpoint);
-                    }while(expected != (symbol_t)nonterminal_t::REPETITION_END);
-                    syntax_tree.checkpoint(checkpoint);
-                    expected = *syntax_tree.current();
+                if(!inFirst(look_ahead,token)){
+                    remove(nonterminal_t::REPETITION_END);
+                    expected = next();
                     continue;
                 }
                 
-                syntax_tree
+                copy(nonterminal_t::REPETITION_END);
+                expected = next();
+            } break;
 
+            case nonterminal_t::OPTIONAL_START:{
+                syntax_tree.left();
+                symbol_t look_ahead = syntax_tree.current();
+                syntax_tree.right();
+
+                if(!inFirst(look_ahead,token)){
+                    remove(nonterminal_t::OPTIONAL_END);
+                    expected = next();
+                    continue;
+                }
+                
+                auto optional_start = syntax_tree.checkpoint();
+                copy(nonterminal_t::OPTIONAL_END);
+                auto end_position = syntax_tree.checkpoint();
+                syntax_tree.checkpoint(optional_start);
+                remove(nonterminal_t::OPTIONAL_END);
+                syntax_tree.checkpoint(end_position);
+                expected = next();
+            
             } break;
                 
             default:
@@ -326,18 +329,20 @@ void Parser::parse(const parseble_t& parseble){
     token_t correct = get<token_t>(expected);
     if(correct == token){
         
-        if(token == token_t::IDENTIFIER || 
-           token == token_t::NUM
-        )
-            ctxSave(lexeme);
+        next();
 
-        ctxNext();
+        // if(token == token_t::IDENTIFIER || 
+        //    token == token_t::NUM
+        // )
+        //     ctxSave(lexeme);
 
-        if(token == token_t::SEMI ||
-           token == token_t::OPEN_CURLY ||
-           token == token_t::CLOSE_CURLY 
-        )
-            backup_tree.update(syntax_tree);
+        // next();
+
+        // if(token == token_t::SEMI ||
+        //    token == token_t::OPEN_CURLY ||
+        //    token == token_t::CLOSE_CURLY 
+        // )
+        //     backup_tree.update(syntax_tree);
 
         return;
     }
@@ -371,72 +376,72 @@ ostream& operator<<(ostream& os, const Parser::rule_ctx_t& context){
     return os;
 }
 
-ostream& operator<<(ostream& os, const Parser::par_seq_t& sequence){
+// ostream& operator<<(ostream& os, const Parser::par_seq_t& sequence){
     
-    if(sequence.empty()){
-        os << "EMPTY";
-        return os;
-    }
+//     if(sequence.empty()){
+//         os << "EMPTY";
+//         return os;
+//     }
 
-    for(parseble_t parseble : sequence){
-        auto [token,lexeme] = parseble;
-        os << parseble.first;
-        if(!lexeme.empty())
-            os << "(" << lexeme << ")";
-        os << " ";
-    }
-    return os;
-}
+//     for(parseble_t parseble : sequence){
+//         auto [token,lexeme] = parseble;
+//         os << parseble.first;
+//         if(!lexeme.empty())
+//             os << "(" << lexeme << ")";
+//         os << " ";
+//     }
+//     return os;
+// }
 
-void Parser::backup(){
-    syntax_tree.update(backup_tree);
-    context = syntax_tree.top;
-}
+// void Parser::backup(){
+//     syntax_tree.update(backup_tree);
+//     context = syntax_tree.top;
+// }
 
-tree_t<Parser::par_seq_t> Parser::getTree(){
+// tree_t<Parser::par_seq_t> Parser::getTree(){
 
-    static const set<token_t> BLACKLIST = {
-        // token_t::CLOSE_CURLY,
-        // token_t::OPEN_CURLY,
-        // token_t::OPEN_ROUND,
-        token_t::CLOSE_ROUND,
-        token_t::SEMI,
-        token_t::COMMA,
-        token_t::VOID,
-        token_t::INT,
-        token_t::CLOSE_SQUARE
-    };
+//     static const set<token_t> BLACKLIST = {
+//         // token_t::CLOSE_CURLY,
+//         // token_t::OPEN_CURLY,
+//         // token_t::OPEN_ROUND,
+//         token_t::CLOSE_ROUND,
+//         token_t::SEMI,
+//         token_t::COMMA,
+//         token_t::VOID,
+//         token_t::INT,
+//         token_t::CLOSE_SQUARE
+//     };
     
-    tree_t<par_seq_t> abstract_tree{par_seq_t()};
-    function<void(tree_t<rule_ctx_t>::node_t * from)> traverse = [&](const tree_t<rule_ctx_t>::node_t * from){
-        par_seq_t parsebles;
+//     tree_t<par_seq_t> abstract_tree{par_seq_t()};
+//     function<void(tree_t<rule_ctx_t>::node_t * from)> traverse = [&](const tree_t<rule_ctx_t>::node_t * from){
+//         par_seq_t parsebles;
     
-        if(from->data.rule != nullptr){
-            const rule_t & rule = (*from->data.rule);
-            const lex_seq_t & lexemes = from->data.lexemes;
-            for(size_t i = 0; i < rule.size(); i++){
-                symbol_t symbol = rule[i];
-                const string & lexeme = lexemes[i];
+//         if(from->data.rule != nullptr){
+//             const rule_t & rule = (*from->data.rule);
+//             const lex_seq_t & lexemes = from->data.lexemes;
+//             for(size_t i = 0; i < rule.size(); i++){
+//                 symbol_t symbol = rule[i];
+//                 const string & lexeme = lexemes[i];
 
-                if(holds_alternative<nonterminal_t>(symbol))
-                    continue;
-                token_t token = get<token_t>(symbol);
-                if(BLACKLIST.count(token))
-                    continue;
-                parsebles.push_back(parseble_t(token,lexeme));
-            }
-        }
+//                 if(holds_alternative<nonterminal_t>(symbol))
+//                     continue;
+//                 token_t token = get<token_t>(symbol);
+//                 if(BLACKLIST.count(token))
+//                     continue;
+//                 parsebles.push_back(parseble_t(token,lexeme));
+//             }
+//         }
     
-        if(!parsebles.empty())
-            abstract_tree.push(parsebles);
+//         if(!parsebles.empty())
+//             abstract_tree.push(parsebles);
         
-        for(tree_t<rule_ctx_t>::node_t * child : from->children)
-            traverse(child);
+//         for(tree_t<rule_ctx_t>::node_t * child : from->children)
+//             traverse(child);
         
-        if(!parsebles.empty())
-            abstract_tree.pop();
-    };
+//         if(!parsebles.empty())
+//             abstract_tree.pop();
+//     };
     
-    traverse(syntax_tree.root);
-    return abstract_tree;
-}
+//     traverse(syntax_tree.root);
+//     return abstract_tree;
+// }
