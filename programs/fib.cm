@@ -1,0 +1,9 @@
+int fibonacci(int num){
+    if(num)
+        return num * fibonacci(num - 1);
+}
+
+void main(void){
+    int num = SWICHADDR;
+    DISPADDR = fibonacci(num);
+}

@@ -1,0 +1,9 @@
+void main(){
+    int a;
+    int b;
+
+    a = SWICHADDR;
+    b = SWICHADDR;
+
+    DISPADDR = a + b;
+}
