@@ -1,7 +1,0 @@
-int call(void){
-    return 1;
-}
-
-void main(void){
-    call();
-}

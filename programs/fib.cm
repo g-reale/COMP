@@ -1,9 +1,14 @@
-int fibonacci(int num){
-    if(num)
-        return num * fibonacci(num - 1);
-}
-
 void main(void){
-    int num = SWICHADDR;
-    DISPADDR = fibonacci(num);
+    int num;
+    int result;
+
+    result = 1;
+    num = SWICHADDR;
+    
+    while(num){
+        result = result * num;
+        num = num - 1;
+    }
+    
+    DISPADDR = result;
 }
