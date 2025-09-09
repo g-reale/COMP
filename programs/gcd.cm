@@ -6,6 +6,6 @@ int gcd (int u, int v)
 
 void main(void)
 {	int x; int y;
-	x = SWICHADDR8; y = SWICHADDR;
+	x = SWICHADDR; y = SWICHADDR;
 	DISPADDR = gcd(x,y);
 }
