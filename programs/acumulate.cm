@@ -1,0 +1,13 @@
+void main(void){
+    int amount;
+    int result;
+
+    result = 0;
+    amount = SWICHADDR;
+    while(amount){
+        result = result + SWICHADDR;
+        amount = amount - 1;
+    }
+
+    DISPADDR = result;
+}

@@ -1,0 +1,14 @@
+void main(void){
+    int num;
+    int result;
+
+    result = 1;
+    num = SWICHADDR;
+    
+    while(num){
+        result = result * num;
+        num = num - 1;
+    }
+    
+    DISPADDR = result;
+}
