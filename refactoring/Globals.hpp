@@ -167,49 +167,92 @@ inline symbol_t symbolFromString(const std::string& string){
     return symbol_t();
 }
 
+struct assemblable_t{
+    token_t token;
+    std::string lexeme;
+    assemblable_t() : token(token_t::ERROR), lexeme("") {}
+    assemblable_t(token_t token) : token(token), lexeme("") {}
+    assemblable_t(token_t token, std::string lexeme) : token(token), lexeme(lexeme) {}
+};
+
+inline std::ostream& operator<<(std::ostream& os, assemblable_t assemblable) {
+    os << assemblable.token;
+    return os;
+}
+
 template<typename data_t>
 class tree_t{
     public:
 
     struct node_t {
-        using node_list_t = std::list<std::unique_ptr<node_t>>;
+        using node_list_t = std::list<node_t*>;
         using iter_t = typename node_list_t::iterator;
         
         data_t data;
         node_t* parent = nullptr;
         node_list_t children = {};
         iter_t self;
+
+        // bool operator==(const node_t& other) const{
+        //     if(data != other.data)
+        //         return false;
+            
+        //     if(children.size() != other.children.size())
+        //         return false;
+            
+        //     auto mine = children.begin();
+        //     auto theirs = other.children.begin();
+
+        //     while(mine != children.end()){
+        //         if((*mine)->data != (*theirs)->data)
+        //             return false;
+        //         mine++;
+        //         theirs++;
+        //     }
+
+        //     return true;
+        // }
+
+        // bool operator!=(const node_t& other) const{
+        //     return !(*this == other);
+        // }
     };
 
     node_t root;
     node_t * focused;
+    size_t depth;
+    typename node_t::node_list_t arena;
     typename node_t::iter_t cursor;
     
     tree_t(data_t data){
+        depth = 0;
         root.data = data;
         focused = &root;
         cursor = root.children.begin();
     }
 
+    ~tree_t(){
+        for(node_t * child : arena)
+            delete child;
+    }
+
     void insert(data_t data, typename node_t::iter_t & iterator){
 
+        node_t * child = new node_t{
+            .data = data,
+            .parent = focused
+        };
+        arena.push_back(child);
+
         if(!focused->children.size()){
-            typename node_t::iter_t child = focused->children.insert(focused->children.begin(),std::make_unique<node_t>());
-            *(*child) = (node_t){
-                .data = data,
-                .parent = focused,
-                .self = child
-            };
+            typename node_t::iter_t self = focused->children.insert(focused->children.begin(),child);
+            child->self = self;
             iterator = focused->children.begin();
             return;
         }
 
-        typename node_t::iter_t child = focused->children.insert(iterator,std::make_unique<node_t>());
-        *(*child) = (node_t){
-            .data = data,
-            .parent = focused,
-            .self = child
-        };
+        typename node_t::iter_t self = focused->children.insert(iterator,child);
+        child->self = self;
     }
 
     void insert(data_t data){
@@ -252,9 +295,11 @@ class tree_t{
     }
 
     bool down(){
+
         if(!focused->children.empty()){
-            focused = (*cursor).get();
+            focused = *cursor;
             cursor = focused->children.end();
+            depth++;
             return true;
         }
         return false;
@@ -264,6 +309,7 @@ class tree_t{
         if(focused->parent){
             cursor = focused->self;
             focused = focused->parent;
+            depth--;
             return true;
         }
         return false;
@@ -307,12 +353,77 @@ class tree_t{
 
     bool next(){
         bool success;
-        if(!(success = left()))
-            if((success = up()))
-                success = left();
+        while(!(success = left())){
+            if(!(success = up()))
+                break;
+        }
         return success;
     }
 
+    bool prev(){
+        bool success;
+        while(!(success = right())){
+            if(!(success = up()))
+                break;
+        }
+        return success;
+    }
+
+    bool empty(){
+        return focused->children.empty();
+    }
+
+    // tree_t clone() const {
+    //     tree_t cloned(root.data);
+    
+    //     std::function<void(const node_t*, node_t*)> traverse = [&](const node_t* original, node_t* copy) {
+    //         for (auto it = original->children.begin(); it != original->children.end(); ++it) {
+    //             const auto& child = *it;
+
+    //             node_t* cronenberg = new node_t;
+    //             copy->children.push_back(cronenberg);
+    //             cloned.arena.push_back(cronenberg);
+    //             cronenberg->data = child->data;
+    //             cronenberg->parent = copy;
+    //             cronenberg->self = std::prev(copy->children.end());
+
+    //             if (it == cursor) {
+    //                 cloned.cursor  = cronenberg->self;
+    //                 cloned.focused = copy;
+    //             }
+    
+    //             traverse(child, cronenberg);
+    //         }
+    //     };
+    
+    //     traverse(&root, &cloned.root);
+    //     return cloned;
+    // }
+    
+
+    // bool update(tree_t<data_t>& other){
+    //     node_t * other_focused = other.focused;
+    //     node_t::iter_t other_cursor = other.cursor;
+    //     size_t other_depth = other.depth;
+
+    //     while(depth < other.depth)
+    //         other.up();
+    //     while(other.depth < depth)
+    //         up();
+    //     while(
+    //         *other.focused != *focused &&
+    //         up() &&
+    //         other.up()
+    //     );
+
+    //     node_t * mine_focused;
+    //     node::iter_t mine_cursor;
+    //     focused->children.clear();
+
+    //     std::function<void(node_t *)> traverse = [&](node_t * node){
+
+    //     }
+    // }
 };
 
 template<typename data_t>
@@ -328,8 +439,8 @@ std::ostream& operator<<(std::ostream& os, const tree_t<data_t>& tree){
         os << indent << node->data << std::endl;
         
         indent += "\t";
-        for(const auto& child : node->children)
-            traverse(child.get());
+        for (auto child = node->children.rbegin(); child != node->children.rend(); child++)
+            traverse(*child);
         indent.pop_back();
     };
     traverse(&tree.root);

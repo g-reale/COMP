@@ -72,22 +72,20 @@ int main(){
         if(parseble.first == token_t::LINE_END || parseble.first == token_t::COMMENT)
             continue;
 
-        parser.parse(parseble);
-
-        // try{
-        //     parser.parse(parseble);
-        // }
-        // catch(runtime_error& ex){
-        //     auto [token,lexeme] = parseble;
-        //     cout << "Parser on " << token << "(" << lexeme << "):" << lexer.getLine() << ": " << ex.what() << endl;
-        //     parser.backup();
-        //     failed = true;
-        // }
+        try{
+            parser.parse(parseble);
+        }
+        catch(runtime_error& ex){
+            auto [token,lexeme] = parseble;
+            cout << "Parser on " << token << "(" << lexeme << "):" << lexer.getLine() << ": " << ex.what() << endl;
+            // exit(-1);
+            parser.backup(); //no backup strategy for now
+            failed = true;
+        }
     }
 
     if(failed)
         exit(-1);
 
-    // cout << parser.getTree();
-
+    cout << parser.getTree();
 }

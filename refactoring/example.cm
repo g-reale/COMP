@@ -1,6 +1,7 @@
 int vet[ 10 ];
 int size;
 
+
 int minloc ( int a[], int low, int high )
 {	int i; int x; int k;
 	k = low;
