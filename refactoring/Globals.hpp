@@ -10,22 +10,83 @@
 #include <functional>
 #include <unordered_map>
 
+#define OPERATOR_TYPES\
+    OPERATOR(SUM)\
+    OPERATOR(SUB)\
+    OPERATOR(MUL)\
+    OPERATOR(DIV)\
+    OPERATOR(FJMP)\
+    OPERATOR(LT)\
+    OPERATOR(GT)\
+    OPERATOR(LEQ)\
+    OPERATOR(GEQ)\
+    OPERATOR(EQ)\
+    OPERATOR(NEQ)\
+    OPERATOR(SET)\
+    OPERATOR(SETDS)\
+    OPERATOR(SETDD)\
+    OPERATOR(SETDDI)\
+    OPERATOR(SETI)\
+    OPERATOR(_COUNT)\
+
+enum class operator_t{
+    #define OPERATOR(name) name,
+    OPERATOR_TYPES
+    #undef OPERATOR
+};
+
+inline std::ostream& operator<<(std::ostream& os, operator_t op) {
+    std::string text;
+     switch (op) {
+        #define OPERATOR(name) case operator_t::name: text = #name; break;
+        OPERATOR_TYPES
+        #undef OPERATOR
+        default:
+            text = "undefined operator!";
+    }
+    return os << text;
+}
+
+struct assembly_t{
+    operator_t operation;
+    size_t destination;
+    size_t argument_a;
+    size_t argument_b;
+};
+
+inline std::ostream& operator<<(std::ostream& os, assembly_t assembly){
+    return os << assembly.operation << "(" << assembly.destination << "," << assembly.argument_a << "," << assembly.argument_b << ")";
+}
+
+using program_t = std::list<assembly_t>;
+
+inline std::ostream& operator<<(std::ostream& os, const program_t& program){
+    size_t i = 0;
+    for(auto& assembly : program){
+        os << i << ":\t" << assembly << std::endl;
+        i++;
+    }
+    return os;
+}
+
+
+//order must be compatible with operator_t for easy conversion during assembly
 #define TOKEN_TYPES\
-    TOKEN(COMMENT)\
-    TOKEN(LINE_END)\
+    TOKEN(SUM)\
+    TOKEN(SUB)\
+    TOKEN(MUL)\
+    TOKEN(DIV)\
+    TOKEN(COMMA)\
+    TOKEN(LESS)\
+    TOKEN(MORE)\
     TOKEN(LESS_EQ)\
     TOKEN(MORE_EQ)\
     TOKEN(LOGICAL_EQ)\
     TOKEN(NOT_EQUAL)\
-    TOKEN(SUM)\
-    TOKEN(SUB)\
-    TOKEN(DIV)\
-    TOKEN(MUL)\
-    TOKEN(LESS)\
-    TOKEN(MORE)\
-    TOKEN(SEMI)\
-    TOKEN(COMMA)\
     TOKEN(EQUAL)\
+    TOKEN(LINE_END)\
+    TOKEN(SEMI)\
+    TOKEN(COMMENT)\
     TOKEN(OPEN_ROUND)\
     TOKEN(CLOSE_ROUND)\
     TOKEN(OPEN_SQUARE)\
@@ -82,6 +143,7 @@ using parseble_t = std::pair<token_t,std::string>;
     NONTERMINAL(PARAM_DECISION)\
     NONTERMINAL(SCALAR_PARAM)\
     NONTERMINAL(VEC_PARAM)\
+    NONTERMINAL(VEC_PARAM_END)\
     NONTERMINAL(INT_COMPOSED_DECL)\
     NONTERMINAL(VOID_COMPOSED_DECL)\
     NONTERMINAL(LOCAL_DECL)\
@@ -93,7 +155,8 @@ using parseble_t = std::pair<token_t,std::string>;
     NONTERMINAL(INT_IF_BODY)\
     NONTERMINAL(INT_ELSE_BODY)\
     NONTERMINAL(INT_ITERATION_DECL)\
-    NONTERMINAL(INT_RETURN_DECL    )\
+    NONTERMINAL(INT_RETURN_DECL)\
+    NONTERMINAL(INT_WHILE_BODY)\
     NONTERMINAL(VOID_STATEMENT_LIST)\
     NONTERMINAL(VOID_STATEMENT)\
     NONTERMINAL(VOID_SELECTION_DECL)\
@@ -101,6 +164,7 @@ using parseble_t = std::pair<token_t,std::string>;
     NONTERMINAL(VOID_ELSE_BODY)\
     NONTERMINAL(VOID_ITERATION_DECL)\
     NONTERMINAL(VOID_RETURN_DECL)\
+    NONTERMINAL(VOID_WHILE_BODY)\
     NONTERMINAL(EXPRESSION_DECL)\
     NONTERMINAL(CONDITION)\
     NONTERMINAL(EXPRESSION)\
@@ -116,8 +180,19 @@ using parseble_t = std::pair<token_t,std::string>;
     NONTERMINAL(VECTOR_ACTIVATION)\
     NONTERMINAL(FUNCTION_ACTIVATION)\
     NONTERMINAL(ARGUMENT_DECISION)\
+    NONTERMINAL(ARGUMENTS)\
+    NONTERMINAL(EQUALITY)\
     NONTERMINAL(ARGUMENT)\
+    NONTERMINAL(INDEX)\
     NONTERMINAL(PARAM_END)\
+    NONTERMINAL(VOID_FUN_SHAPPING)\
+    NONTERMINAL(KING)\
+    NONTERMINAL(QUEEN)\
+    NONTERMINAL(DUKE)\
+    NONTERMINAL(JOKER)\
+    NONTERMINAL(SERF)\
+    NONTERMINAL(NUMERAL)\
+    NONTERMINAL(NAME)\
     NONTERMINAL(_COUNT)\
     NONTERMINAL(OPTIONAL_START)\
     NONTERMINAL(OPTIONAL_END)\
@@ -167,19 +242,6 @@ inline symbol_t symbolFromString(const std::string& string){
     return symbol_t();
 }
 
-struct assemblable_t{
-    token_t token;
-    std::string lexeme;
-    assemblable_t() : token(token_t::ERROR), lexeme("") {}
-    assemblable_t(token_t token) : token(token), lexeme("") {}
-    assemblable_t(token_t token, std::string lexeme) : token(token), lexeme(lexeme) {}
-};
-
-inline std::ostream& operator<<(std::ostream& os, assemblable_t assemblable) {
-    os << assemblable.token;
-    return os;
-}
-
 template<typename data_t>
 class tree_t{
     public:
@@ -192,30 +254,6 @@ class tree_t{
         node_t* parent = nullptr;
         node_list_t children = {};
         iter_t self;
-
-        // bool operator==(const node_t& other) const{
-        //     if(data != other.data)
-        //         return false;
-            
-        //     if(children.size() != other.children.size())
-        //         return false;
-            
-        //     auto mine = children.begin();
-        //     auto theirs = other.children.begin();
-
-        //     while(mine != children.end()){
-        //         if((*mine)->data != (*theirs)->data)
-        //             return false;
-        //         mine++;
-        //         theirs++;
-        //     }
-
-        //     return true;
-        // }
-
-        // bool operator!=(const node_t& other) const{
-        //     return !(*this == other);
-        // }
     };
 
     node_t root;
@@ -285,9 +323,11 @@ class tree_t{
     }
 
     bool right(typename node_t::iter_t & iterator){
-        if(iterator != focused->children.end())
+        if(iterator != focused->children.end()){
             iterator++;
-        return iterator == focused->children.end();
+            return true;
+        }
+        return false;
     }
 
     bool right(){
@@ -323,32 +363,36 @@ class tree_t{
         return end(cursor);
     }
 
-    data_t current(typename node_t::iter_t & iterator){
+    data_t& current(typename node_t::iter_t & iterator){
         return ((*iterator)->data);
     }
 
-    data_t current(){
+    data_t& current(){
         return current(cursor);
     }
 
-    typename node_t::iter_t checkpoint(){
-        return cursor;
-    }
-
-    void checkpoint(typename node_t::iter_t save){
-        cursor = save;
-    }
-
-    bool remove(typename node_t::iter_t & iterator){
-        if(iterator != focused->children.end()){
+    bool remove(node_t * node, typename node_t::iter_t & iterator){
+        if(iterator != node->children.end()){
             iterator = focused->children.erase(iterator);
             return true;
         }
         return false;
     }
 
+    bool remove(typename node_t::iter_t & iterator){
+        return remove(focused,iterator);
+    }
+
     bool remove(){
         return remove(cursor);
+    }
+
+    void donate(node_t * doner, node_t * receiver, typename node_t::iter_t destination){
+        
+        for(auto child : doner->children){
+            child->parent = receiver;
+            child->self = receiver->children.insert(destination,child);
+        }
     }
 
     bool next(){
@@ -369,61 +413,22 @@ class tree_t{
         return success;
     }
 
+    template<typename Preorder, typename Postorder>
+    void traverse(node_t * node, const Preorder& preorder, const Postorder& postorder){
+        preorder(node);
+        for(auto child : node->children)
+            traverse(child,preorder,postorder);
+        postorder(node);
+    }
+
+    template<typename Preorder, typename Postorder>
+    void traverse(const Preorder& preorder, const Postorder& postorder){
+        traverse(&root,preorder,postorder);
+    }
+
     bool empty(){
         return focused->children.empty();
     }
-
-    // tree_t clone() const {
-    //     tree_t cloned(root.data);
-    
-    //     std::function<void(const node_t*, node_t*)> traverse = [&](const node_t* original, node_t* copy) {
-    //         for (auto it = original->children.begin(); it != original->children.end(); ++it) {
-    //             const auto& child = *it;
-
-    //             node_t* cronenberg = new node_t;
-    //             copy->children.push_back(cronenberg);
-    //             cloned.arena.push_back(cronenberg);
-    //             cronenberg->data = child->data;
-    //             cronenberg->parent = copy;
-    //             cronenberg->self = std::prev(copy->children.end());
-
-    //             if (it == cursor) {
-    //                 cloned.cursor  = cronenberg->self;
-    //                 cloned.focused = copy;
-    //             }
-    
-    //             traverse(child, cronenberg);
-    //         }
-    //     };
-    
-    //     traverse(&root, &cloned.root);
-    //     return cloned;
-    // }
-    
-
-    // bool update(tree_t<data_t>& other){
-    //     node_t * other_focused = other.focused;
-    //     node_t::iter_t other_cursor = other.cursor;
-    //     size_t other_depth = other.depth;
-
-    //     while(depth < other.depth)
-    //         other.up();
-    //     while(other.depth < depth)
-    //         up();
-    //     while(
-    //         *other.focused != *focused &&
-    //         up() &&
-    //         other.up()
-    //     );
-
-    //     node_t * mine_focused;
-    //     node::iter_t mine_cursor;
-    //     focused->children.clear();
-
-    //     std::function<void(node_t *)> traverse = [&](node_t * node){
-
-    //     }
-    // }
 };
 
 template<typename data_t>
@@ -447,4 +452,12 @@ std::ostream& operator<<(std::ostream& os, const tree_t<data_t>& tree){
     return os;
 }
 
+using syntax_tree_t = tree_t<symbol_t>;
+using syntax_node_t = tree_t<symbol_t>::node_t *;
+using lexeme_map_t = std::unordered_map<tree_t<symbol_t>::node_t *,std::string>;
+
+struct assemblable_t{
+    syntax_tree_t& tree;
+    lexeme_map_t& lexemes;
+};
 #endif

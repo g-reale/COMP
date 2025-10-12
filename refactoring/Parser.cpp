@@ -6,56 +6,110 @@
 using namespace std;
 
 
+// PROGRAM -> DECLARATION REPETITION_START DECLARATION REPETITION_END;
+//         DECLARATION -> VOID IDENTIFIER VOID_FUN_SHAPPING | INT IDENTIFIER DECLARATION_DECISION;
+//         DECLARATION_DECISION -> VEC_DECL | SCALAR_DECL | INT_FUN_DECL;
+//         VEC_DECL -> OPEN_SQUARE NUM CLOSE_SQUARE SEMI;
+//         SCALAR_DECL -> SEMI;
+//         VOID_FUN_SHAPPING -> VOID_FUN_DECL;
+//         VOID_FUN_DECL -> OPEN_ROUND PARAMS VOID_COMPOSED_DECL;
+//         INT_FUN_DECL -> OPEN_ROUND PARAMS INT_COMPOSED_DECL;
+//         PARAMS -> VOID CLOSE_ROUND | PARAM REPETITION_START PARAM REPETITION_END;
+//         PARAM -> INT IDENTIFIER PARAM_DECISION;
+//         PARAM_DECISION -> SCALAR_PARAM | VEC_PARAM;
+//         SCALAR_PARAM -> COMMA | CLOSE_ROUND;
+//         VEC_PARAM -> OPEN_SQUARE CLOSE_SQUARE SCALAR_PARAM;
+//         INT_COMPOSED_DECL -> OPEN_CURLY OPTIONAL_START LOCAL_DECL OPTIONAL_END OPTIONAL_START INT_STATEMENT_LIST OPTIONAL_END CLOSE_CURLY;
+//         VOID_COMPOSED_DECL -> OPEN_CURLY OPTIONAL_START LOCAL_DECL OPTIONAL_END OPTIONAL_START VOID_STATEMENT_LIST OPTIONAL_END CLOSE_CURLY;
+//         LOCAL_DECL -> VAR_DECL REPETITION_START VAR_DECL REPETITION_END;
+//         VAR_DECL -> INT IDENTIFIER VAR_DECISION;
+//         VAR_DECISION -> VEC_DECL | SCALAR_DECL;
+//         INT_STATEMENT_LIST -> INT_STATEMENT REPETITION_START INT_STATEMENT REPETITION_END;
+//         INT_STATEMENT -> EXPRESSION | INT_COMPOSED_DECL | INT_SELECTION_DECL | INT_ITERATION_DECL | INT_RETURN_DECL;
+//         INT_SELECTION_DECL -> IF OPEN_ROUND CONDITION CLOSE_ROUND INT_IF_BODY OPTIONAL_START ELSE INT_ELSE_BODY OPTIONAL_END;
+//         INT_IF_BODY -> INT_STATEMENT;
+//         INT_ELSE_BODY -> INT_STATEMENT;
+//         INT_ITERATION_DECL -> WHILE OPEN_ROUND CONDITION CLOSE_ROUND INT_STATEMENT;
+//         INT_RETURN_DECL -> RETURN EXPRESSION;
+//         VOID_STATEMENT_LIST -> VOID_STATEMENT REPETITION_START VOID_STATEMENT REPETITION_END;
+//         VOID_STATEMENT -> EXPRESSION | VOID_COMPOSED_DECL | VOID_SELECTION_DECL | VOID_ITERATION_DECL | VOID_RETURN_DECL;
+//         VOID_SELECTION_DECL -> IF OPEN_ROUND CONDITION CLOSE_ROUND VOID_IF_BODY OPTIONAL_START ELSE VOID_ELSE_BODY OPTIONAL_END;
+//         VOID_IF_BODY -> VOID_STATEMENT;
+//         VOID_ELSE_BODY -> VOID_STATEMENT;
+//         VOID_ITERATION_DECL -> WHILE OPEN_ROUND CONDITION CLOSE_ROUND VOID_STATEMENT;
+//         VOID_RETURN_DECL -> RETURN SEMI;
+//         EXPRESSION -> EXPRESSION SEMI | SEMI;
+//         CONDITION -> EXPRESSION;
+//         EXPRESSION -> SIMPLE_EXP REPETITION_START EQUAL SIMPLE_EXP REPETITION_END;
+//         VAR -> IDENTIFIER OPTIONAL_START OPEN_SQUARE EXPRESSION CLOSE_SQUARE OPTIONAL_END;
+//         SIMPLE_EXP -> SUM_EXP REPETITION_START RELATIONAL SUM_EXP REPETITION_END;
+//         RELATIONAL -> LESS_EQ | LOGICAL_EQ | MORE_EQ | LOGICAL_EQ | NOT_EQUAL | LESS | MORE;
+//         SUM_EXP -> TERM REPETITION_START PLUS_MINUS TERM REPETITION_END;
+//         PLUS_MINUS -> SUM | SUB;
+//         TERM -> FACTOR REPETITION_START MUL_DIV FACTOR REPETITION_END;
+//         MUL_DIV -> MUL | DIV;
+//         FACTOR -> OPEN_ROUND EXPRESSION CLOSE_ROUND | IDENTIFIER OPTIONAL_START ACTIVATION_DECISION OPTIONAL_END | NUM;
+//         ACTIVATION_DECISION -> FUNCTION_ACTIVATION | VECTOR_ACTIVATION;
+//         VECTOR_ACTIVATION -> OPEN_SQUARE EXPRESSION CLOSE_SQUARE;
+//         FUNCTION_ACTIVATION -> OPEN_ROUND ARGUMENT_DECISION;
+//         ARGUMENT_DECISION -> CLOSE_ROUND | ARGUMENT REPETITION_START COMMA ARGUMENT REPETITION_END CLOSE_ROUND;
+//         ARGUMENT -> EXPRESSION;
+
 const pair<Parser::first_t,Parser::grammar_t> Parser::CONSTANTS = []{
     
     string rules = R"(
         PROGRAM -> DECLARATION REPETITION_START DECLARATION REPETITION_END;
-        DECLARATION -> VOID IDENTIFIER VOID_FUN_DECL | INT IDENTIFIER DECLARATION_DECISION;
+        DECLARATION -> VOID IDENTIFIER VOID_FUN_SHAPPING | INT IDENTIFIER DECLARATION_DECISION;
         DECLARATION_DECISION -> VEC_DECL | SCALAR_DECL | INT_FUN_DECL;
         VEC_DECL -> OPEN_SQUARE NUM CLOSE_SQUARE SEMI;
         SCALAR_DECL -> SEMI;
+        VOID_FUN_SHAPPING -> VOID_FUN_DECL;
         VOID_FUN_DECL -> OPEN_ROUND PARAMS VOID_COMPOSED_DECL;
         INT_FUN_DECL -> OPEN_ROUND PARAMS INT_COMPOSED_DECL;
         PARAMS -> VOID CLOSE_ROUND | PARAM REPETITION_START PARAM REPETITION_END;
         PARAM -> INT IDENTIFIER PARAM_DECISION;
         PARAM_DECISION -> SCALAR_PARAM | VEC_PARAM;
         SCALAR_PARAM -> COMMA | CLOSE_ROUND;
-        VEC_PARAM -> OPEN_SQUARE CLOSE_SQUARE SCALAR_PARAM;
+        VEC_PARAM -> OPEN_SQUARE CLOSE_SQUARE VEC_PARAM_END;
+        VEC_PARAM_END -> COMMA | CLOSE_ROUND;
         INT_COMPOSED_DECL -> OPEN_CURLY OPTIONAL_START LOCAL_DECL OPTIONAL_END OPTIONAL_START INT_STATEMENT_LIST OPTIONAL_END CLOSE_CURLY;
         VOID_COMPOSED_DECL -> OPEN_CURLY OPTIONAL_START LOCAL_DECL OPTIONAL_END OPTIONAL_START VOID_STATEMENT_LIST OPTIONAL_END CLOSE_CURLY;
         LOCAL_DECL -> VAR_DECL REPETITION_START VAR_DECL REPETITION_END;
         VAR_DECL -> INT IDENTIFIER VAR_DECISION;
         VAR_DECISION -> VEC_DECL | SCALAR_DECL;
         INT_STATEMENT_LIST -> INT_STATEMENT REPETITION_START INT_STATEMENT REPETITION_END;
-        INT_STATEMENT -> EXPRESSION_DECL | INT_COMPOSED_DECL | INT_SELECTION_DECL | INT_ITERATION_DECL | INT_RETURN_DECL;
+        INT_STATEMENT -> EXPRESSION | INT_COMPOSED_DECL | INT_SELECTION_DECL | INT_ITERATION_DECL | INT_RETURN_DECL;
         INT_SELECTION_DECL -> IF OPEN_ROUND CONDITION CLOSE_ROUND INT_IF_BODY OPTIONAL_START ELSE INT_ELSE_BODY OPTIONAL_END;
         INT_IF_BODY -> INT_STATEMENT;
         INT_ELSE_BODY -> INT_STATEMENT;
-        INT_ITERATION_DECL -> WHILE OPEN_ROUND CONDITION CLOSE_ROUND INT_STATEMENT;
-        INT_RETURN_DECL -> RETURN EXPRESSION SEMI;
+        INT_ITERATION_DECL -> WHILE OPEN_ROUND CONDITION CLOSE_ROUND INT_WHILE_BODY;
+        INT_WHILE_BODY -> INT_STATEMENT;
+        INT_RETURN_DECL -> RETURN EXPRESSION;
         VOID_STATEMENT_LIST -> VOID_STATEMENT REPETITION_START VOID_STATEMENT REPETITION_END;
-        VOID_STATEMENT -> EXPRESSION_DECL | VOID_COMPOSED_DECL | VOID_SELECTION_DECL | VOID_ITERATION_DECL | VOID_RETURN_DECL;
+        VOID_STATEMENT -> EXPRESSION | VOID_COMPOSED_DECL | VOID_SELECTION_DECL | VOID_ITERATION_DECL | VOID_RETURN_DECL;
         VOID_SELECTION_DECL -> IF OPEN_ROUND CONDITION CLOSE_ROUND VOID_IF_BODY OPTIONAL_START ELSE VOID_ELSE_BODY OPTIONAL_END;
         VOID_IF_BODY -> VOID_STATEMENT;
         VOID_ELSE_BODY -> VOID_STATEMENT;
-        VOID_ITERATION_DECL -> WHILE OPEN_ROUND CONDITION CLOSE_ROUND VOID_STATEMENT;
+        VOID_ITERATION_DECL -> WHILE OPEN_ROUND CONDITION CLOSE_ROUND VOID_WHILE_BODY;
+        VOID_WHILE_BODY -> VOID_STATEMENT;
         VOID_RETURN_DECL -> RETURN SEMI;
-        EXPRESSION_DECL -> EXPRESSION SEMI | SEMI;
-        CONDITION -> EXPRESSION;
-        EXPRESSION -> SIMPLE_EXP REPETITION_START EQUAL SIMPLE_EXP REPETITION_END;
-        VAR -> IDENTIFIER OPTIONAL_START OPEN_SQUARE EXPRESSION CLOSE_SQUARE OPTIONAL_END;
-        SIMPLE_EXP -> SUM_EXP OPTIONAL_START RELATIONAL SUM_EXP OPTIONAL_END;
-        RELATIONAL -> LESS_EQ | LOGICAL_EQ | MORE_EQ | LOGICAL_EQ | NOT_EQUAL | LESS | MORE;
-        SUM_EXP -> TERM REPETITION_START PLUS_MINUS TERM REPETITION_END;
+        CONDITION -> KING;
+        EXPRESSION -> KING SEMI;
+        KING -> QUEEN OPTIONAL_START EQUALITY KING OPTIONAL_END;
+        QUEEN -> DUKE OPTIONAL_START RELATIONAL QUEEN OPTIONAL_END;
+        DUKE -> JOKER OPTIONAL_START PLUS_MINUS DUKE OPTIONAL_END;
+        JOKER -> SERF OPTIONAL_START MUL_DIV JOKER OPTIONAL_END;
+        SERF -> NAME OPTIONAL_START ACTIVATION_DECISION OPTIONAL_END | NUMERAL | OPEN_ROUND KING CLOSE_ROUND;
+        ACTIVATION_DECISION -> OPEN_SQUARE INDEX CLOSE_SQUARE | FUNCTION_ACTIVATION;
+        FUNCTION_ACTIVATION -> OPEN_ROUND OPTIONAL_START ARGUMENTS OPTIONAL_END CLOSE_ROUND;
+        NAME -> IDENTIFIER;
+        NUMERAL -> NUM;
+        ARGUMENTS -> KING REPETITION_START COMMA KING REPETITION_END;
+        EQUALITY -> EQUAL;
+        RELATIONAL -> LESS_EQ | LOGICAL_EQ | MORE_EQ | NOT_EQUAL | LESS | MORE;
         PLUS_MINUS -> SUM | SUB;
-        TERM -> FACTOR REPETITION_START MUL_DIV FACTOR REPETITION_END;
         MUL_DIV -> MUL | DIV;
-        FACTOR -> OPEN_ROUND EXPRESSION CLOSE_ROUND | IDENTIFIER OPTIONAL_START ACTIVATION_DECISION OPTIONAL_END | NUM;
-        ACTIVATION_DECISION -> FUNCTION_ACTIVATION | VECTOR_ACTIVATION;
-        VECTOR_ACTIVATION -> OPEN_SQUARE EXPRESSION CLOSE_SQUARE;
-        FUNCTION_ACTIVATION -> OPEN_ROUND ARGUMENT_DECISION;
-        ARGUMENT_DECISION -> CLOSE_ROUND | ARGUMENT REPETITION_START COMMA ARGUMENT REPETITION_END CLOSE_ROUND;
-        ARGUMENT -> EXPRESSION;
+        INDEX -> KING;
     )";
     
     istringstream slicer(rules);
@@ -266,11 +320,6 @@ symbol_t Parser::push(nonterminal_t nonterminal, token_t token){
     if(rule.empty())
         throw runtime_error("unable to find rule for token");
 
-    const static set<nonterminal_t> CHECKPOINTS = {
-        nonterminal_t::PROGRAM,
-
-    };
-
     syntax_tree.down();
     syntax_tree.insert(rule);
     syntax_tree.left();
@@ -390,195 +439,135 @@ void Parser::backup(){
     syntax_tree.next();
 }
 
-tree_t<assemblable_t> Parser::getTree(){
+assemblable_t Parser::getTree(){
+
+    static unordered_map<symbol_t,set<symbol_t>> PROMOTIONS = {
+        {token_t::IDENTIFIER,{nonterminal_t::PARAM,nonterminal_t::VAR_DECL}},
+        {nonterminal_t::EQUALITY,{nonterminal_t::KING}},
+        {nonterminal_t::RELATIONAL,{nonterminal_t::QUEEN}},
+        {nonterminal_t::PLUS_MINUS,{nonterminal_t::DUKE}},
+        {nonterminal_t::MUL_DIV,{nonterminal_t::JOKER}},
+        {nonterminal_t::INDEX,{nonterminal_t::ACTIVATION_DECISION,nonterminal_t::SERF}},
+        {nonterminal_t::FUNCTION_ACTIVATION,{nonterminal_t::ACTIVATION_DECISION}}
+    };
     
-    tree_t<assemblable_t> abstract_tree(assemblable_t{token_t::ERROR});
-    using syntax_node_t = tree_t<symbol_t>::node_t *;
-    // using abstract_tree_t = tree_t<assemblable_t>::node_t *;
-
-    // syntax_tree.focused = &syntax_tree.root;
-    // syntax_tree.end();
-
     static const set<symbol_t> BLACKLIST = {
-        token_t::COMMA,
+        token_t::INT,
+        token_t::VOID,
         token_t::SEMI,
+        token_t::COMMA,
+        token_t::OPEN_ROUND,
+        token_t::CLOSE_ROUND,
+        token_t::OPEN_CURLY,
+        token_t::CLOSE_CURLY,
+        token_t::CLOSE_SQUARE,
+        token_t::IF,
+        token_t::ELSE,
+        token_t::WHILE,
         nonterminal_t::DECLARATION_DECISION,
+        nonterminal_t::PARAMS,
         nonterminal_t::PARAM_DECISION,
-        nonterminal_t::SCALAR_PARAM,
-        nonterminal_t::CONDITION
+        nonterminal_t::VAR_DECISION,
+        nonterminal_t::LOCAL_DECL,
+        nonterminal_t::VOID_FUN_SHAPPING,
+        nonterminal_t::EXPRESSION,
+        nonterminal_t::VEC_PARAM_END,
+        nonterminal_t::ARGUMENTS
     };
-    
+
     bool changed = true;
-    std::function<bool(syntax_node_t)> flatten = [&](syntax_node_t node) -> bool {
+    auto promote = [&](syntax_node_t node){
+        if(node->children.empty())
+            return;
         
-        
-        // while(changed){
-        //     changed = false;
-            // auto child = node->children.begin();
-            // while(child != node->children.end()){
-
-            //     symbol_t symbol = (*child)->data;
-            //     if(holds_alternative<nonterminal_t>(symbol)){
-            //         for(auto grandchild : (*child)->children){
-            //             grandchild->parent = node;
-            //             grandchild->self = node->children.insert((*child)->self,grandchild);
-            //         }
-            //         auto deceased = child;
-            //         child++;
-            //         node->children.erase(deceased);
-            //         changed = true;
-            //     }
-            //     else
-            //         child++;
-            // }
-        // }
-        
-        if(node->children.size() == 1){
-            auto child = *node->children.begin();
-            symbol_t symbol = child->data;
-            if(holds_alternative<nonterminal_t>(symbol) || BLACKLIST.count(symbol)){
-                for(auto grandchild : child->children){
-                    grandchild->parent = node;
-                    grandchild->self = node->children.insert(child->self,grandchild);
-                }
-                node->children.erase(child->self);
+        syntax_tree.focused = node;
+        syntax_tree.end();
+        do{
+            symbol_t symbol = syntax_tree.current();
+            if(PROMOTIONS.count(symbol) && PROMOTIONS[symbol].count(node->data)){
                 changed = true;
-            }
-        }
-            
-        if(2 <= node->children.size()){
-            auto brother = node->children.begin(); 
-            auto sister = std::next(node->children.begin());
-
-            while(sister != node->children.end()){
-                symbol_t symbol = (*brother)->data;
-
-                if(BLACKLIST.count(symbol)){
-                    for (auto it = (*brother)->children.rbegin();
-                        it != (*brother)->children.rend(); ++it) {
-                        auto grandchild = *it;
-                        grandchild->parent = *sister;
-                        (*sister)->children.push_back(grandchild);
-                        grandchild->self = std::prev((*sister)->children.end());
-                    }
-                    brother = node->children.erase(brother);
-                    sister++;
-                    changed = true;
+                syntax_node_t child = *syntax_tree.cursor;
+                if(lexemes.count(child)){
+                    lexemes[node] = move(lexemes[child]);
+                    lexemes.erase(child);
                 }
-                else{
-                    brother++;
-                    sister++;
-                }
+                node->data = symbol;
+                syntax_tree.donate(child,node,syntax_tree.cursor);
+                syntax_tree.remove();
+                return;
             }
-        }
-
-        // if(2 <= node->children.size()){
-        //     auto brother = node->children.begin();
-        //     auto sister = std::next(node->children.begin());
-
-        //     while(sister != node->children.end()){
-        //         symbol_t symbol = (*sister)->data;
-        //         if(holds_alternative<nonterminal_t>(symbol)){
-        //             for (auto it = (*sister)->children.rbegin();
-        //                 it != (*sister)->children.rend(); ++it) {
-        //                 auto grandchild = *it;
-        //                 grandchild->parent = *brother;
-        //                 (*brother)->children.push_back(grandchild);
-        //                 grandchild->self = std::prev((*brother)->children.end());
-        //             }
-        //             sister = node->children.erase(sister);
-        //         }
-        //         else{
-        //             brother++;
-        //             sister++;
-        //         }
-        //     }
-        // }
-        // else if(node->children.size()){
-            
-        // }
-
-        for(auto child : node->children)
-            flatten(child);
+        }while(syntax_tree.left());
     };
 
-    // flatten(&syntax_tree.root);
+    auto remove = [&](syntax_node_t node){
+
+        if(node->children.empty())
+            return;
+        
+        syntax_tree.focused = node;
+        syntax_tree.end();
+        symbol_t symbol = syntax_tree.current();
+        
+        if(BLACKLIST.count(symbol)){
+            changed = true;
+            syntax_tree.donate(*syntax_tree.cursor,node,syntax_tree.cursor);
+            syntax_tree.remove();
+        }
+
+        while(syntax_tree.left() && 1 < node->children.size()){
+            
+            symbol = syntax_tree.current();
+
+            if(BLACKLIST.count(symbol)){
+                changed = true;
+                syntax_tree.right();
+                auto previous = syntax_tree.cursor;
+                
+                if(previous == node->children.end()){
+                    syntax_tree.left();
+                    continue;
+                }
+                    
+                syntax_tree.left();
+                syntax_tree.donate(*syntax_tree.cursor,*previous,(*previous)->children.end());
+                syntax_tree.remove();
+            }
+
+            if(symbol == (symbol_t)nonterminal_t::REPETITION_START){
+                do{
+                    symbol = syntax_tree.current();
+                    syntax_tree.remove();
+                    syntax_tree.left();
+                }
+                while(symbol != (symbol_t)nonterminal_t::REPETITION_END);
+            }
+        }    
+    };
+
     while(changed){
         changed = false;
-        flatten(&syntax_tree.root);
-        cout << "executed" << endl;
+        syntax_tree.traverse(remove,promote);
     }
-    // flatten(&syntax_tree.root);
-    cout << syntax_tree;
-    return abstract_tree;
+
+    PROMOTIONS = {
+        {nonterminal_t::EQUALITY,{nonterminal_t::KING, nonterminal_t::QUEEN,nonterminal_t::DUKE,nonterminal_t::JOKER,nonterminal_t::SERF}},
+        {nonterminal_t::RELATIONAL,{nonterminal_t::KING, nonterminal_t::QUEEN,nonterminal_t::DUKE,nonterminal_t::JOKER,nonterminal_t::SERF}},
+        {nonterminal_t::PLUS_MINUS,{nonterminal_t::KING, nonterminal_t::QUEEN,nonterminal_t::DUKE,nonterminal_t::JOKER,nonterminal_t::SERF}},
+        {nonterminal_t::MUL_DIV,{nonterminal_t::KING, nonterminal_t::QUEEN,nonterminal_t::DUKE,nonterminal_t::JOKER,nonterminal_t::SERF}},
+        {nonterminal_t::NAME,{nonterminal_t::KING, nonterminal_t::QUEEN,nonterminal_t::DUKE,nonterminal_t::JOKER,nonterminal_t::SERF}},
+        {nonterminal_t::NUMERAL,{nonterminal_t::KING, nonterminal_t::QUEEN,nonterminal_t::DUKE,nonterminal_t::JOKER,nonterminal_t::SERF}},
+        {nonterminal_t::INDEX,{nonterminal_t::KING, nonterminal_t::QUEEN,nonterminal_t::DUKE,nonterminal_t::JOKER}},
+        {nonterminal_t::FUNCTION_ACTIVATION,{nonterminal_t::NAME}}
+    };
+
+    changed = true;
+    while(changed){
+        changed = false;
+        syntax_tree.traverse([](syntax_node_t){},promote);
+    }
+    
+    return (assemblable_t){
+        .tree = syntax_tree,
+        .lexemes = lexemes
+    };
 }
-
-// ostream& operator<<(ostream& os, const Parser::par_seq_t& sequence){
-    
-//     if(sequence.empty()){
-//         os << "EMPTY";
-//         return os;
-//     }
-
-//     for(parseble_t parseble : sequence){
-//         auto [token,lexeme] = parseble;
-//         os << parseble.first;
-//         if(!lexeme.empty())
-//             os << "(" << lexeme << ")";
-//         os << " ";
-//     }
-//     return os;
-// }
-
-// void Parser::backup(){
-//     syntax_tree.update(backup_tree);
-//     context = syntax_tree.top;
-// }
-
-// tree_t<Parser::par_seq_t> Parser::getTree(){
-
-//     static const set<token_t> BLACKLIST = {
-//         // token_t::CLOSE_CURLY,
-//         // token_t::OPEN_CURLY,
-//         // token_t::OPEN_ROUND,
-//         token_t::CLOSE_ROUND,
-//         token_t::SEMI,
-//         token_t::COMMA,
-//         token_t::VOID,
-//         token_t::INT,
-//         token_t::CLOSE_SQUARE
-//     };
-    
-//     tree_t<par_seq_t> abstract_tree{par_seq_t()};
-//     function<void(tree_t<rule_ctx_t>::node_t * from)> traverse = [&](const tree_t<rule_ctx_t>::node_t * from){
-//         par_seq_t parsebles;
-    
-//         if(from->data.rule != nullptr){
-//             const rule_t & rule = (*from->data.rule);
-//             const lex_seq_t & lexemes = from->data.lexemes;
-//             for(size_t i = 0; i < rule.size(); i++){
-//                 symbol_t symbol = rule[i];
-//                 const string & lexeme = lexemes[i];
-
-//                 if(holds_alternative<nonterminal_t>(symbol))
-//                     continue;
-//                 token_t token = get<token_t>(symbol);
-//                 if(BLACKLIST.count(token))
-//                     continue;
-//                 parsebles.push_back(parseble_t(token,lexeme));
-//             }
-//         }
-    
-//         if(!parsebles.empty())
-//             abstract_tree.push(parsebles);
-        
-//         for(tree_t<rule_ctx_t>::node_t * child : from->children)
-//             traverse(child);
-        
-//         if(!parsebles.empty())
-//             abstract_tree.pop();
-//     };
-    
-//     traverse(syntax_tree.root);
-//     return abstract_tree;
-// 

@@ -25,9 +25,8 @@ class Parser{
         
         static const std::pair<first_t,grammar_t> CONSTANTS;
         
-        using lexeme_map = std::unordered_map<tree_t<symbol_t>::node_t *,std::string>;
-        lexeme_map lexemes;
-        tree_t<symbol_t> syntax_tree;
+        lexeme_map_t lexemes;
+        syntax_tree_t syntax_tree;
         void remove(symbol_t end);
         void copy(symbol_t end);
         symbol_t push(nonterminal_t nonterminal, token_t token);
@@ -37,9 +36,6 @@ class Parser{
         Parser();
         void parse(const parseble_t& parseble);
         void backup();
-        tree_t<assemblable_t> getTree();
+        assemblable_t getTree();
 };
-
-// std::ostream& operator<<(std::ostream& os, const Parser::rule_ctx_t& context);
-// std::ostream& operator<<(std::ostream& os, const Parser::par_seq_t& sequence);
 #endif
