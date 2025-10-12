@@ -1,3 +1,4 @@
+// #include <getopt.h>
 #include "Lexer.hpp"
 #include "Parser.hpp"
 #include "Globals.hpp"
@@ -5,8 +6,15 @@
 
 using namespace std;
 
-int main(){
-    Lexer lexer("example.cm");
+int main(int argc, char* argv[]){
+
+    if(argc < 3)
+        throw runtime_error("too few arguments");
+
+    string program(argv[1]);
+    string binary(argv[2]);
+
+    Lexer lexer(program);
     Parser parser;
     Assembler assembler;
 
@@ -48,4 +56,5 @@ int main(){
 
     assemblable_t assemblable = parser.getTree();
     assembler.assemble(assemblable);
+    assembler.writeBinary(binary);
 }

@@ -6,6 +6,7 @@
 #include <memory>
 #include <utility>
 #include <variant>
+#include <iomanip>
 #include <iostream>
 #include <functional>
 #include <unordered_map>
@@ -48,10 +49,10 @@ inline std::ostream& operator<<(std::ostream& os, operator_t op) {
 }
 
 struct assembly_t{
-    operator_t operation;
-    size_t destination;
-    size_t argument_a;
-    size_t argument_b;
+    operator_t operation = operator_t::_COUNT;
+    size_t destination = 0;
+    size_t argument_a = 0;
+    size_t argument_b = 0;
 };
 
 inline std::ostream& operator<<(std::ostream& os, assembly_t assembly){
@@ -413,17 +414,30 @@ class tree_t{
         return success;
     }
 
-    template<typename Preorder, typename Postorder>
-    void traverse(node_t * node, const Preorder& preorder, const Postorder& postorder){
-        preorder(node);
+    template<typename Decending, typename Ascending>
+    void traverse(node_t * node, const Decending& decending, const Ascending& ascending){
+        decending(node);
         for(auto child : node->children)
-            traverse(child,preorder,postorder);
-        postorder(node);
+            traverse(child,decending,ascending);
+        ascending(node);
     }
 
-    template<typename Preorder, typename Postorder>
-    void traverse(const Preorder& preorder, const Postorder& postorder){
-        traverse(&root,preorder,postorder);
+    template<typename Decending, typename Ascending>
+    void traverse(const Decending& decending, const Ascending& ascending){
+        traverse(&root,decending,ascending);
+    }
+
+    template<typename Decending, typename Ascending>
+    void traverseRev(node_t * node, const Decending& decending, const Ascending& ascending){
+        decending(node);
+        for(auto child = node->children.rbegin(); child != node->children.rend(); child++)
+            traverse(*child,decending,ascending);
+        ascending(node);
+    }
+
+    template<typename Decending, typename Ascending>
+    void traverseRev(const Decending& decending, const Ascending& ascending){
+        traverseRev(&root,decending,ascending);
     }
 
     bool empty(){
@@ -460,4 +474,29 @@ struct assemblable_t{
     syntax_tree_t& tree;
     lexeme_map_t& lexemes;
 };
+
+using binary_t = std::vector<size_t>;
+
+inline std::ostream& operator<<(std::ostream& os, const binary_t& binary){
+    size_t main = binary[0];
+    size_t assembly = binary[1];
+
+    os << "0: " << main << " (entrypoint)" << std::endl;
+    os << "1: " << assembly << " (code start)" << std::endl;
+
+    for(size_t i = 2; i < assembly; i++)
+        os << i << ": " << binary[i] << std::endl;
+
+    for(size_t i = assembly; i < binary.size(); i++){
+        size_t word = binary[i];
+        assembly_t assembly = {
+            .operation = (operator_t)((word >> 30) & 0x3FF),
+            .destination = (word >> 20) & 0x3FF,
+            .argument_a = (word >> 10) & 0x3FF,
+            .argument_b = word & 0x3FF
+        };
+        os << i << ": " << std::setw(11) << std::setfill('0') << binary[i] << "\t" << assembly << std::endl;
+    }
+    return os;
+}
 #endif

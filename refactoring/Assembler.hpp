@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <fstream>
 #include <iostream>
 #include <unordered_map>
 
@@ -13,19 +14,22 @@ class Assembler{
     private:
         enum class reserved_t{
             PC,
-            DISP,
-            SWITCH,
+            ASSEMBLY,
             STACK,
-            ONE_CT,
             RETURN_REGISTER,
             TRASH,
+            ONE_CT,
+            DISP,
+            SWITCH,
             _COUNT
         };
         
         enum class type_t{
             SCALAR,
             POINTER,
-            FUNCTION,
+            LABEL,
+            VOID_FUNCTION,
+            INT_FUNCTION,
             _COUNT
         };
 
@@ -42,10 +46,7 @@ class Assembler{
             std::unordered_map<std::string,variable_t> mapping;
         };
 
-        using binary_t = std::vector<size_t>;
-
     private:
-        size_t address;
         void pop();
         void push(const std::string& name);
         void pushvar(const variable_t& variable);
@@ -54,33 +55,41 @@ class Assembler{
         variable_t popvar();
         void allocate(const std::string& name, size_t size = 1, size_t value = 0, type_t type = type_t::SCALAR, bool global_context = false);
         bool find(const std::string& name, variable_t& variable, bool global_context = false);
+    
+        size_t address;
         tree_t<context_t> contexts;
         context_t * global;
         std::vector<variable_t> stack;
         std::unordered_map<size_t,size_t> labels;
-        std::vector<size_t> binary;
+        binary_t binary;
 
+        program_t program;
         std::list<size_t>::iterator next_recycled;
         std::list<size_t> bin;
         size_t recycled;
-        size_t recycle(bool increment);
-        void recycle();
-
+        size_t recycle();
+        
     public:
-        program_t program;
         Assembler();
         void assemble(assemblable_t & assemble);
+        void writeBinary(const std::string& path);
 
-    friend std::ostream& operator<<(std::ostream& os, const type_t& type) {
+    friend std::ostream& operator<<(std::ostream& os, const type_t& type){
         switch (type){
             case type_t::POINTER:
                 os << "POINTER";
                 break;
-            case type_t::FUNCTION:
-                os << "FUNCTION";
-                break;
             case type_t::SCALAR:
                 os << "SCALAR";
+                break;
+            case type_t::LABEL:
+                os << "LABEL";
+                break;
+            case type_t::INT_FUNCTION:
+                os << "INT_FUNCTION";
+                break;
+            case type_t::VOID_FUNCTION:
+                os << "VOID_FUNCTION";
                 break;
             default:
                 os << "invalid type!";
@@ -89,13 +98,21 @@ class Assembler{
         return os;
     }
 
+    friend std::ostream& operator<<(std::ostream& os, const variable_t& variable){
+        os << variable.address << "-" << variable.type << "-" << variable.value;
+        return os;
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const context_t& context) {
         os << context.name << " : ";
         for (const auto& mapping : context.mapping)
-            os << mapping.first << "-" << mapping.second.address << "-"<< mapping.second.type << "-" << mapping.second.value << " ";
+            os << mapping.first << "-" << mapping.second << " ";
         return os;
     }
+
 };
 
+std::ostream& operator<<(std::ostream& os, const Assembler::type_t& type);
 std::ostream& operator<<(std::ostream& os, const Assembler::context_t& context);
+std::ostream& operator<<(std::ostream& os, const Assembler::variable_t& variable);
 #endif
