@@ -2,34 +2,75 @@
 
 using namespace std;
 
-Assembler::Assembler() : contexts({string(""),{}})
-{
+size_t Segment::allocate(size_t size){
+    last_used = used;
+    used = address;
+    address+=size;
+    return used;
+}
+
+size_t Segment::recycle(){
+    if(next_recycled == bin.end() || locked){
+        allocate();
+        bin.push_back(used);
+        locked = true;
+        return used;
+    }
+    else{
+        last_used = used;
+        used = *next_recycled;
+        next_recycled++;
+        return used;
+    }
+}
+
+void Segment::reset(){
+    next_recycled = bin.begin();
+    locked = false;
+}
+
+Segment::Segment(){
+    last_used = 0;
+    used = 0;
+    address = 0;
+    locked = true;
+}
+
+size_t& Segment::operator[](size_t destination){
+    if(segment.size() < address)
+        segment.resize(address);
+    return segment[destination];
+}
+
+const size_t& Segment::operator[](size_t destination) const{
+    return segment[destination];
+}
+
+size_t Segment::size(){
+    if(segment.size() < address)
+        segment.resize(address);
+    return address;
+}
+
+Assembler::Assembler() : contexts({string(""),{}}){
     contexts.insert({string("root"),{}});
     global = &contexts.current();
-    address = (int)reserved_t::_COUNT;
-    next_recycled = bin.end();
-
+    segments[(size_t)segment_t::RESERVED].allocate((size_t)reserved_t::_COUNT);
     global->mapping["SWICHADDR"] = {
-        .type = type_t::SCALAR,
-        .address = (size_t)reserved_t::SWITCH
+        .segment = (size_t)segment_t::RESERVED,
+        .address = (size_t)reserved_t::SWITCH,
     };
     global->mapping["DISPADDR"] = {
-        .type = type_t::SCALAR,
+        .segment = (size_t)segment_t::RESERVED,
         .address = (size_t)reserved_t::DISP
     };
 }
 
-void Assembler::allocate(const string& name, size_t size, size_t value, type_t type, bool global_context){
-    context_t& context = global_context ? *global : contexts.current();
+void Assembler::declare(const string& name, const variable_t& variable, bool global_context){
+    context_t& context = global_context ? * global : contexts.current();
     if(context.mapping.count(name))
         throw runtime_error("lexeme redefinition: " + name);
-    
-    context.mapping[name] = {
-        .type = type,
-        .address = address,
-        .value = value,
-    };
-    address += size;
+    context.mapping[name] = variable;
 }
 
 void Assembler::push(const std::string& name){
@@ -56,18 +97,6 @@ Assembler::variable_t Assembler::popvar(){
 
 void Assembler::pushvar(const variable_t& variable){
     stack.push_back(variable);
-}
-
-void Assembler::pushvar(size_t destination, type_t type, size_t value){
-    stack.push_back({
-        .type = type,
-        .address = destination,
-        .value= value,
-    });
-}
-
-void Assembler::dma(size_t destination, size_t value){
-    labels[destination] = value;
 }
 
 bool Assembler::find(const std::string& name, variable_t& variable, bool global_context){
@@ -97,17 +126,22 @@ bool Assembler::find(const std::string& name, variable_t& variable, bool global_
     return found;
 }
 
-size_t Assembler::recycle(){
-    if(next_recycled == bin.end()){
-        recycled = address;
-        bin.push_back(address);
-        address++;
-    }
-    else{
-        recycled = *next_recycled;
-        next_recycled++;
-    }
-    return recycled;
+Assembler::variable_t Assembler::allocate(Assembler::segment_t segment,size_t size){
+    return {
+        (size_t)segment,
+        segments[(size_t)segment].allocate(size),
+    };
+}
+
+Assembler::variable_t Assembler::recycle(Assembler::segment_t segment){
+    return {
+        (size_t)segment,
+        segments[(size_t)segment].recycle(),
+    };
+}
+
+void Assembler::set(const Assembler::variable_t& variable, size_t value){
+    segments[variable.segment][variable.address] = value;
 }
 
 void Assembler::assemble(assemblable_t & assemblable){
@@ -124,16 +158,13 @@ void Assembler::assemble(assemblable_t & assemblable){
                 case nonterminal_t::VOID_FUN_DECL:
                 case nonterminal_t::INT_FUN_DECL:{
                     const string & name = lexemes[node->parent];
-                    allocate(name,
-                        0,
-                        program.size(),
-                        nonterminal == nonterminal_t::VOID_FUN_DECL ? type_t::VOID_FUNCTION : type_t::INT_FUNCTION,
-                        true
-                    );
-                    dma(address,program.size());
-                    address++;
+                    segment_t segment = nonterminal == nonterminal_t::VOID_FUN_DECL ? segment_t::VOID_FUNCTIONS : segment_t::INT_FUNCTIONS;
+                    variable_t function = allocate(segment);
+                    set(function,program.size());
+                    segments[(size_t)segment_t::SCALARS].reset();
+                    segments[(size_t)segment_t::POINTERS].reset();
+                    declare(name,function);
                     push(name);
-                    next_recycled = bin.begin();
                 }
                 break;
 
@@ -152,14 +183,18 @@ void Assembler::assemble(assemblable_t & assemblable){
                     abstract_tree.left();
                     const string & name = lexemes[node->parent];
                     const string & size = lexemes[*abstract_tree.cursor];
-                    allocate(name,stoull(size) + 1,address + 1,type_t::POINTER);
+                    variable_t scalars = allocate(segment_t::SCALARS,stoull(size));
+                    variable_t pointer = allocate(segment_t::USER_POITERS);
+                    set(pointer,scalars.address);
+                    declare(name,pointer);
                     return;
                 }
                 break;
 
                 case nonterminal_t::SCALAR_DECL:{
                     const string & name = lexemes[node->parent];
-                    allocate(name);
+                    variable_t scalar = allocate(segment_t::SCALARS);
+                    declare(name,scalar);
                     return;
                 }
                 break;
@@ -167,16 +202,21 @@ void Assembler::assemble(assemblable_t & assemblable){
                 case nonterminal_t::SCALAR_PARAM:
                 case nonterminal_t::VEC_PARAM:{
                     const string & name = lexemes[node->parent];
+                    segment_t segment = nonterminal == nonterminal_t::SCALAR_PARAM ? segment_t::SCALARS : segment_t::USER_POITERS;
+                    variable_t parameter = allocate(segment);
+                    declare(name,parameter);
+
                     program.insert(program.end(),{
-                        {operator_t::SETDS,address,(size_t)reserved_t::STACK},
-                        {operator_t::SUB,(size_t)reserved_t::STACK,(size_t)reserved_t::STACK,(size_t)reserved_t::ONE_CT},
+                        {operator_t::SETDS,
+                            parameter,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK}
+                        },
+                        {operator_t::SUB,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::ONE_CT}
+                        }
                     });
-                    allocate(
-                        name,
-                        1,
-                        nonterminal == nonterminal_t::SCALAR_PARAM ? 0 : address,
-                        nonterminal == nonterminal_t::SCALAR_PARAM ? type_t::SCALAR : type_t::POINTER
-                    );
                     return;
                 }
                 break;
@@ -185,9 +225,12 @@ void Assembler::assemble(assemblable_t & assemblable){
                     abstract_tree.focused = node;
                     abstract_tree.end();
                     const string & name = lexemes[*abstract_tree.cursor];
-                    variable_t variable;
-                    if(!find(name,variable,true))
-                        allocate(name,1,stoull(name),type_t::SCALAR,true);
+                    variable_t number;
+                    if(!find(name,number,true)){
+                        number = allocate(segment_t::SCALARS);
+                        set(number,stoull(name));
+                        declare(name,number,true);
+                    }
                 }
                 break;
 
@@ -206,11 +249,13 @@ void Assembler::assemble(assemblable_t & assemblable){
                     break;
 
                 case nonterminal_t::VOID_ITERATION_DECL:
-                case nonterminal_t::INT_ITERATION_DECL:
-                    dma(address,program.size());
-                    pushvar(address);
+                case nonterminal_t::INT_ITERATION_DECL:{
+                    variable_t label = allocate(segment_t::LABELS);
+                    set(label,program.size());
+                    pushvar(label);
                     break;
-                
+                }
+
                 default:
                 break;
             }
@@ -227,17 +272,19 @@ void Assembler::assemble(assemblable_t & assemblable){
                 
                 case nonterminal_t::VOID_IF_BODY:
                 case nonterminal_t::INT_IF_BODY:{
+                    variable_t label = allocate(segment_t::LABELS);
                     program.push_back({
-                        .operation = operator_t::SET,
-                        .destination = (size_t)reserved_t::PC,
-                        .argument_a = address
+                        operator_t::SET, 
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::PC}, 
+                            label
                     });
+
                     variable_t jumpvar;
                     do{
                         jumpvar = popvar();
-                    }while(jumpvar.type != type_t::LABEL);
-                    dma(jumpvar.address,program.size());
-                    pushvar(address,type_t::LABEL);
+                    }while(jumpvar.segment != (size_t)segment_t::LABELS);
+                    set(jumpvar,program.size());
+                    pushvar(label);
                     pop();
                 }
                 break;
@@ -247,32 +294,44 @@ void Assembler::assemble(assemblable_t & assemblable){
                     variable_t jumpvar;
                     do{
                         jumpvar = popvar();
-                    }while(jumpvar.type != type_t::LABEL);
-                    dma(jumpvar.address,program.size());
+                    }while(jumpvar.segment != (size_t)segment_t::LABELS);
+                    set(jumpvar,program.size());
                 }
                 break;
                 
                 case nonterminal_t::INT_ITERATION_DECL:
                 case nonterminal_t::VOID_ITERATION_DECL:{
-                    cout << stack.size() << endl;
                     variable_t conditionvar = popvar();
                     variable_t jumpstart = popvar();
                     program.push_back({
-                        .operation = operator_t::SET,
-                        .destination = (size_t)reserved_t::PC,
-                        .argument_a = jumpstart.address
+                        operator_t::SET,
+                        {(size_t)segment_t::RESERVED,(size_t)reserved_t::PC},
+                        jumpstart
                     });
-                    dma(conditionvar.address,program.size());
+                    set(conditionvar,program.size());
                 }
                 break;
 
                 case nonterminal_t::VOID_FUN_DECL:
-                case nonterminal_t::INT_FUN_DECL:
+                case nonterminal_t::INT_FUN_DECL:{
+                    
+                    variable_t scalar = recycle(segment_t::SCALARS);
                     program.insert(program.end(),{
-                        {operator_t::SETDS,recycle(),(size_t)reserved_t::STACK},
-                        {operator_t::SUB,(size_t)reserved_t::STACK,(size_t)reserved_t::ONE_CT},
-                        {operator_t::SET,(size_t)reserved_t::PC,recycled}
+                        {operator_t::SETDS,
+                            scalar,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK}
+                        },
+                        {operator_t::SUB,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::ONE_CT}
+                        },
+                        {operator_t::SET,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::PC},
+                            scalar
+                        }
                     });
+                }
                     [[fallthrough]];
                     
                 case nonterminal_t::VOID_ELSE_BODY:
@@ -283,22 +342,34 @@ void Assembler::assemble(assemblable_t & assemblable){
                     break;
 
                 case nonterminal_t::INT_RETURN_DECL:{
-                    variable_t variable = popvar();
-                    program.push_back((assembly_t){
-                        .operation = operator_t::SET,
-                        .argument_a = (size_t)reserved_t::RETURN_REGISTER,
-                        .argument_b = variable.address
+                    variable_t scalar = popvar();
+                    program.push_back({
+                        operator_t::SET,
+                        {(size_t)segment_t::RESERVED,(size_t)reserved_t::RETURN_REGISTER},
+                        scalar
                     });
                 }
                 [[fallthrough]];
 
-                case nonterminal_t::VOID_RETURN_DECL:
+                case nonterminal_t::VOID_RETURN_DECL:{
+
+                    variable_t scalar = recycle(segment_t::SCALARS);
                     program.insert(program.end(),{
-                        {operator_t::SETDS,recycle(),(size_t)reserved_t::STACK},
-                        {operator_t::SUB,(size_t)reserved_t::STACK,(size_t)reserved_t::ONE_CT},
-                        {operator_t::SET,(size_t)reserved_t::PC,recycled}
+                        {operator_t::SETDS,
+                            scalar,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                        },
+                        {operator_t::SUB,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::ONE_CT}
+                        },
+                        {operator_t::SET,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::PC},
+                            scalar
+                        }
                     });
-                    break;
+                }
+                break;
                 
                 case nonterminal_t::EQUALITY:
                 case nonterminal_t::INDEX:
@@ -310,66 +381,38 @@ void Assembler::assemble(assemblable_t & assemblable){
                     abstract_tree.end();
                     abstract_tree.left();
                     token_t operation = get<token_t>(abstract_tree.current());
+                    array<variable_t,2> variables = {popvar(),popvar()};
                     
-                    array<variable_t,2> variables;
-                    array<size_t,2> addresses;
-                    
-                    for(size_t i = 0; i < addresses.size(); i++){
-                        variable_t variable = popvar();
-                        variables[i] = variable;
-                        addresses[i] = variable.address;
-                    }
-
                     switch (operation){
 
-                        case token_t::OPEN_SQUARE:
-                            program.push_back({
-                                .operation = operator_t::SUM,
-                                .destination = recycle(),
-                                .argument_a = addresses[1],
-                                .argument_b = addresses[0]
-                            });
-                            pushvar(recycled,type_t::POINTER);
+                        case token_t::OPEN_SQUARE:{
+                            variable_t pointer = recycle(segment_t::POINTERS);
+                            program.push_back({operator_t::SUM,pointer,variables[0], variables[1]});
+                            pushvar(pointer);
+                        }
                         break;
 
                         case token_t::EQUAL:{
-                            if(variables[0].type == type_t::POINTER){
-                                program.push_back({
-                                    .operation = operator_t::SETDS,
-                                    .destination = recycle(),
-                                    .argument_a = addresses[0]
-                                });
-                                addresses[0] = recycled;
+                            if(variables[0].segment == (size_t)segment_t::POINTERS){
+                                variable_t deferenced = recycle(segment_t::SCALARS);
+                                program.push_back({operator_t::SETDS,deferenced,variables[0]});
+                                variables[0] = deferenced;
                             }
-
-                            operator_t operation = variables[1].type == type_t::POINTER ? operator_t::SETDD : operator_t::SET;
-                            program.push_back({
-                                .operation = operation,
-                                .destination = addresses[1],
-                                .argument_a = addresses[0]
-                            });
+                            operator_t operation = variables[1].segment == (size_t)segment_t::POINTERS ? operator_t::SETDD : operator_t::SET;
+                            program.push_back({operation,variables[1],variables[0]});
                         }
                         break;
                     
                         default:{
-                            array<size_t,2> auxiliaries = {recycle(),recycle()};
-
-                            for(size_t i = 0; i < addresses.size(); i++){
-                            if(variables[i].type == type_t::POINTER){
-                                program.push_back({
-                                    .operation = operator_t::SETDS,
-                                    .destination = auxiliaries[i],
-                                    .argument_a = addresses[i]
-                                });
-                                addresses[i] = auxiliaries[i];
+                            for(size_t i = 0; i < variables.size(); i++){
+                            if(variables[i].segment == (size_t)segment_t::POINTERS){
+                                variable_t deferenced = recycle(segment_t::SCALARS);
+                                program.push_back({operator_t::SETDS,deferenced,variables[i]});
+                                variables[i] = deferenced;
                             }}
-                            program.push_back({
-                                .operation = (operator_t)(int)operation,
-                                .destination = recycle(),
-                                .argument_a = addresses[1],
-                                .argument_b = addresses[0],
-                            });
-                            pushvar(recycled);
+                            variable_t result = allocate(segment_t::SCALARS);
+                            program.push_back({(operator_t)(int)operation,result,variables[1],variables[0]});
+                            pushvar(result);
                         }
                         break;
                     }
@@ -383,24 +426,47 @@ void Assembler::assemble(assemblable_t & assemblable){
                     variable_t function;
                     find(name,function,true);
                     
-                    if(function.type != type_t::VOID_FUNCTION &&  function.type != type_t::INT_FUNCTION)
+                    if(function.segment != (size_t)segment_t::VOID_FUNCTIONS && function.segment != (size_t)segment_t::INT_FUNCTIONS)
                         throw runtime_error("expected function");
                         
                     size_t amount = stack.size() - depth;
+                    variable_t label = allocate(segment_t::LABELS);
                     
                     program.insert(program.end(),{
-                        {operator_t::SUM,(size_t)reserved_t::STACK,(size_t)reserved_t::STACK,(size_t)reserved_t::ONE_CT},
-                        {operator_t::SETDD,(size_t)reserved_t::STACK,recycle()}
+                        {operator_t::SUM,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::ONE_CT}
+                        },
+                        {operator_t::SETDD,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                            label
+                        }
                     });
                     
                     for(size_t i = stack.size() - amount; i < stack.size(); i++){
+                        variable_t argument = stack[i];
+
+                        if(argument.segment == (size_t)segment_t::POINTERS){
+                            variable_t dereferenced = recycle(segment_t::SCALARS);
+                            program.push_back({operator_t::SETDS,dereferenced,argument});
+                            argument = dereferenced;
+                        }
+
                         program.insert(program.end(),{
-                            {operator_t::SUM,(size_t)reserved_t::STACK,(size_t)reserved_t::STACK,(size_t)reserved_t::ONE_CT},
-                            {operator_t::SETDD,(size_t)reserved_t::STACK,stack[i].address}
+                            {operator_t::SUM,
+                                {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                                {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                                {(size_t)segment_t::RESERVED,(size_t)reserved_t::ONE_CT}
+                            },
+                            {operator_t::SETDD,
+                                {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
+                                argument
+                            }
                         });
                     }
                     
-                    dma(recycled,program.size()+1);
+                    set(label,program.size()+1);
                     
                     while(amount){
                         popvar();
@@ -408,25 +474,26 @@ void Assembler::assemble(assemblable_t & assemblable){
                     }
 
                     program.push_back({
-                        .operation = operator_t::SET,
-                        .destination = (size_t)reserved_t::PC,
-                        .argument_a = function.address
+                        operator_t::SET,
+                        {(size_t)segment_t::RESERVED,(size_t)reserved_t::PC},
+                        function
                     });
-                    
-                    if(function.type == type_t::INT_FUNCTION)
-                        pushvar((size_t)reserved_t::RETURN_REGISTER,type_t::SCALAR);
+
+                    if(function.segment == (size_t)segment_t::INT_FUNCTIONS)
+                        pushvar({(size_t)segment_t::RESERVED,(size_t)reserved_t::RETURN_REGISTER});
                 }
                 break;
 
                 case nonterminal_t::CONDITION:{
                     variable_t condition = popvar();
-                    program.insert(program.end(),{{
-                        .operation = operator_t::FJMP,
-                        .destination = (size_t)reserved_t::TRASH,
-                        .argument_a = condition.address,
-                        .argument_b = recycle()
-                    }});
-                    pushvar(recycled,type_t::LABEL);
+                    variable_t label = allocate(segment_t::LABELS);
+                    program.push_back({
+                        operator_t::FJMP, 
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::TRASH}, 
+                            condition,
+                            label
+                    });
+                    pushvar(label);
                 }
                 break;
 
@@ -448,47 +515,142 @@ void Assembler::assemble(assemblable_t & assemblable){
     };
 
     traverse(&(assemblable.tree.root));
-    binary.resize(address + program.size());
-    
+
     variable_t main;
     if(!find("main",main,true))
         throw runtime_error("main not found");
 
-    binary[(size_t)reserved_t::PC] = main.value + address;
-    binary[(size_t)reserved_t::ASSEMBLY] = address;
-    binary[(size_t)reserved_t::ONE_CT] = 1;
-    binary[(size_t)reserved_t::STACK] = binary.size();
+    if(main.segment != (size_t)segment_t::VOID_FUNCTIONS)
+        throw runtime_error("main must be a void function");
 
-    contexts.traverse([&](tree_t<context_t>::node_t* node){
-        std::unordered_map<std::string,variable_t> mapping = node->data.mapping;
-        for(auto& [name,variable] : mapping)
-            binary[variable.address] = variable.value;
-    },
-    [](tree_t<context_t>::node_t*){});
+    array<size_t,(size_t)segment_t::_COUNT + 1> offsets;
+    offsets[0] = 0;
+    for(size_t i = 1; i < segments.size() + 1; i++)
+        offsets[i] = offsets[i-1] + segments[i-1].size();
+    binary.resize(program.size() + offsets.back());
 
-    for(auto label : labels){
-        auto [index, value] = label;
-        binary[index] = value + address;
+    for(size_t i = 0; i < segments.size(); i++){
+        Segment & segment = segments[i];
+        size_t offset = offsets[i];
+        
+        switch ((segment_t)i){
+
+            case segment_t::USER_POITERS:
+            case segment_t::POINTERS:
+                for(size_t j = 0; j < segment.size(); j++)
+                    binary[j + offset] = segment[j] + offsets[(size_t)segment_t::SCALARS];
+                break;
+
+            case segment_t::VOID_FUNCTIONS:
+            case segment_t::INT_FUNCTIONS:
+            case segment_t::LABELS:
+                for(size_t j = 0; j < segment.size(); j++)
+                    binary[j + offset] = segment[j] + offsets.back();
+                break;
+            
+            case segment_t::RESERVED:
+                binary[(size_t)reserved_t::ONE_CT   + offset] = 1;
+                binary[(size_t)reserved_t::ASSEMBLY + offset] = offsets.back();
+                binary[(size_t)reserved_t::STACK    + offset] = offsets.back() + program.size();
+                binary[(size_t)reserved_t::PC       + offset] = offsets.back() + segments[(size_t)segment_t::VOID_FUNCTIONS][main.address];
+                break;
+
+            default:
+                for(size_t j = 0; j < segment.size(); j++)
+                    binary[j + offset] = segment[j];
+                break;
+        }
     }
     
-    size_t i = address;
-    for(auto line : program){
-        size_t op = (size_t)line.operation;
-        size_t destination = (size_t)line.destination;
-        size_t argument_a = (size_t)line.argument_a;
-        size_t argument_b = (size_t)line.argument_b;
-        binary[i] = (op << 30) + (destination << 20) + (argument_a << 10) + argument_b;
-        i++;
+    for(size_t i = 0; i < program.size(); i++){
+        size_t op = (size_t)program[i].op;
+        variable_t destination = program[i].destination;
+        variable_t argument_a = program[i].argument_a;
+        variable_t argument_b = program[i].argument_b;
+        
+        binary[i + offsets.back()] = ((op) << 3 * ARGUMENT_LENGTH) +
+                                     ((offsets[destination.segment] + destination.address) << 2 * ARGUMENT_LENGTH) +
+                                     ((offsets[argument_a.segment]  + argument_a.address)  << ARGUMENT_LENGTH) +
+                                     ((offsets[argument_b.segment]  + argument_b.address));
     }
 }
 
 void Assembler::writeBinary(const std::string& path){    
-    cout << binary;
+    cout << *this;
     ofstream file(path);
 
     if(!file.is_open())
         throw runtime_error("could not open file: " + path);
 
     for(size_t line : binary)
-        file << line << '\n';
+        file << hex << line << '\n';
+}
+
+std::ostream& operator<<(std::ostream& os, const Assembler::segment_t& type){
+    std::string text;
+    switch (type) {
+        #define SEGMENT(name) case Assembler::segment_t::name: text = #name; break;
+        SEGMENT_TYPES
+        #undef SEGMENT
+        default:
+            text = "undefined operator!";
+    }
+    return os << text;
+}
+
+std::ostream& operator<<(std::ostream& os, const Assembler::reserved_t& type){
+    std::string text;
+    switch (type) {
+        #define RESERVED(name) case Assembler::reserved_t::name: text = #name; break;
+        RESERVED_TYPES
+        #undef RESERVED
+        default:
+            text = "undefined operator!";
+    }
+    return os << text;
+}
+
+std::ostream& operator<<(std::ostream& os, const Assembler::variable_t& variable){
+    if(variable.segment == (size_t)Assembler::segment_t::RESERVED)
+        os << (Assembler::reserved_t)variable.address;
+    else
+        os << variable.address << "\t" << ((Assembler::segment_t)variable.segment);
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Assembler::assembly_t& assembly){
+    os << assembly.op << "(\n\t" << assembly.destination << ",\n\t" << assembly.argument_a;
+    if(assembly.op < operator_t::SET)
+        os << ",\n\t" << assembly.argument_b;
+    os << "\n)";
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Segment& s){
+    for(size_t i = 0; i < s.segment.size(); i++)
+        os << i << ":\t" << s.segment[i] << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& os, const Assembler::context_t& context){
+    os << context.name << ":";
+    for(auto variable : context.mapping)
+        os << "\t" << variable.first << "\t" << variable.second << "\t-";
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Assembler& assembler){
+    size_t main = assembler.binary[0];
+    size_t assembly = assembler.binary[1];
+
+    os << "0: " << main << " (entrypoint)" << std::endl;
+    os << "1: " << assembly << " (code start)" << std::endl;
+
+    for(size_t i = 2; i < assembly; i++)
+        os << i << ": " << assembler.binary[i] << std::endl;
+
+    for(size_t i = assembly; i < assembler.binary.size(); i++){
+        size_t word = assembler.binary[i];
+        os << i << ": " << std::setw(11) << std::setfill('0') << word << "\t" << (operator_t)((word >> 30) & 0x3FF) << "(" << ((word >> 20) & 0x3FF) << "," << ((word >> 10) & 0x3FF)  << "," << (word & 0x3FF) << ")" << endl;
+    }
+    return os;
 }

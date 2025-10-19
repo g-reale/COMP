@@ -48,27 +48,27 @@ inline std::ostream& operator<<(std::ostream& os, operator_t op) {
     return os << text;
 }
 
-struct assembly_t{
-    operator_t operation = operator_t::_COUNT;
-    size_t destination = 0;
-    size_t argument_a = 0;
-    size_t argument_b = 0;
-};
+// struct assembly_t{
+//     operator_t operation = operator_t::_COUNT;
+//     size_t destination = 0;
+//     size_t argument_a = 0;
+//     size_t argument_b = 0;
+// };
 
-inline std::ostream& operator<<(std::ostream& os, assembly_t assembly){
-    return os << assembly.operation << "(" << assembly.destination << "," << assembly.argument_a << "," << assembly.argument_b << ")";
-}
+// inline std::ostream& operator<<(std::ostream& os, assembly_t assembly){
+//     return os << assembly.operation << "(" << assembly.destination << "," << assembly.argument_a << "," << assembly.argument_b << ")";
+// }
 
-using program_t = std::list<assembly_t>;
+// using program_t = std::list<assembly_t>;
 
-inline std::ostream& operator<<(std::ostream& os, const program_t& program){
-    size_t i = 0;
-    for(auto& assembly : program){
-        os << i << ":\t" << assembly << std::endl;
-        i++;
-    }
-    return os;
-}
+// inline std::ostream& operator<<(std::ostream& os, const program_t& program){
+//     size_t i = 0;
+//     for(auto& assembly : program){
+//         os << i << ":\t" << assembly << std::endl;
+//         i++;
+//     }
+//     return os;
+// }
 
 
 //order must be compatible with operator_t for easy conversion during assembly
@@ -475,28 +475,28 @@ struct assemblable_t{
     lexeme_map_t& lexemes;
 };
 
-using binary_t = std::vector<size_t>;
+// using binary_t = std::vector<size_t>;
 
-inline std::ostream& operator<<(std::ostream& os, const binary_t& binary){
-    size_t main = binary[0];
-    size_t assembly = binary[1];
+// inline std::ostream& operator<<(std::ostream& os, const binary_t& binary){
+//     size_t main = binary[0];
+//     size_t assembly = binary[1];
 
-    os << "0: " << main << " (entrypoint)" << std::endl;
-    os << "1: " << assembly << " (code start)" << std::endl;
+//     os << "0: " << main << " (entrypoint)" << std::endl;
+//     os << "1: " << assembly << " (code start)" << std::endl;
 
-    for(size_t i = 2; i < assembly; i++)
-        os << i << ": " << binary[i] << std::endl;
+//     for(size_t i = 2; i < assembly; i++)
+//         os << i << ": " << binary[i] << std::endl;
 
-    for(size_t i = assembly; i < binary.size(); i++){
-        size_t word = binary[i];
-        assembly_t assembly = {
-            .operation = (operator_t)((word >> 30) & 0x3FF),
-            .destination = (word >> 20) & 0x3FF,
-            .argument_a = (word >> 10) & 0x3FF,
-            .argument_b = word & 0x3FF
-        };
-        os << i << ": " << std::setw(11) << std::setfill('0') << binary[i] << "\t" << assembly << std::endl;
-    }
-    return os;
-}
+//     for(size_t i = assembly; i < binary.size(); i++){
+//         size_t word = binary[i];
+//         assembly_t assembly = {
+//             .operation = (operator_t)((word >> 30) & 0x3FF),
+//             .destination = (word >> 20) & 0x3FF,
+//             .argument_a = (word >> 10) & 0x3FF,
+//             .argument_b = word & 0x3FF
+//         };
+//         os << i << ": " << std::setw(11) << std::setfill('0') << binary[i] << "\t" << assembly << std::endl;
+//     }
+//     return os;
+// }
 #endif

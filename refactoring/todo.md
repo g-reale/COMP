@@ -1,0 +1,5 @@
+- Compile time regex
+- Compile time grammar initialization
+- Subtree error handling
+- Stronger type checking
+- Better assembler error handling (iterative assembling)
