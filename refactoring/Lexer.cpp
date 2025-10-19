@@ -33,6 +33,7 @@ const array<string,(size_t)token_t::_COUNT> Lexer::TOKEN_RULES = []{
     rules[(size_t)token_t::WHILE]        = R"(while(?=\W))";
     rules[(size_t)token_t::RETURN]       = R"(return(?=\W))";
     rules[(size_t)token_t::IDENTIFIER]   = R"([a-zA-Z]+)";
+    rules[(size_t)token_t::ASCII]        = R"('[\x00-\x7F]')";
     return rules;
 }();
 

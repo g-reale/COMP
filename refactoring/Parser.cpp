@@ -99,11 +99,12 @@ const pair<Parser::first_t,Parser::grammar_t> Parser::CONSTANTS = []{
         QUEEN -> DUKE OPTIONAL_START RELATIONAL QUEEN OPTIONAL_END;
         DUKE -> JOKER OPTIONAL_START PLUS_MINUS DUKE OPTIONAL_END;
         JOKER -> SERF OPTIONAL_START MUL_DIV JOKER OPTIONAL_END;
-        SERF -> NAME OPTIONAL_START ACTIVATION_DECISION OPTIONAL_END | NUMERAL | OPEN_ROUND KING CLOSE_ROUND;
+        SERF -> NAME OPTIONAL_START ACTIVATION_DECISION OPTIONAL_END | NUMERAL | CHARACTER | OPEN_ROUND KING CLOSE_ROUND;
         ACTIVATION_DECISION -> OPEN_SQUARE INDEX CLOSE_SQUARE | FUNCTION_ACTIVATION;
         FUNCTION_ACTIVATION -> OPEN_ROUND OPTIONAL_START ARGUMENTS OPTIONAL_END CLOSE_ROUND;
         NAME -> IDENTIFIER;
         NUMERAL -> NUM;
+        CHARACTER -> ASCII;
         ARGUMENTS -> KING REPETITION_START COMMA KING REPETITION_END;
         EQUALITY -> EQUAL;
         RELATIONAL -> LESS_EQ | LOGICAL_EQ | MORE_EQ | NOT_EQUAL | LESS | MORE;
@@ -424,7 +425,7 @@ void Parser::parse(const parseble_t& parseble){
     token_t correct = get<token_t>(expected);
     if(correct == token){
 
-        if(token == token_t::NUM || token == token_t::IDENTIFIER)//save lexeme for latter use
+        if(token == token_t::NUM || token == token_t::IDENTIFIER || token == token_t::ASCII)//save lexeme for latter use
             lexemes[*syntax_tree.cursor] = lexeme;
         next();
         return;

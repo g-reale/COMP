@@ -102,6 +102,7 @@ inline std::ostream& operator<<(std::ostream& os, operator_t op) {
     TOKEN(WHILE)\
     TOKEN(RETURN)\
     TOKEN(IDENTIFIER)\
+    TOKEN(ASCII)\
     TOKEN(_COUNT)\
     TOKEN(ERROR)
     
@@ -193,6 +194,7 @@ using parseble_t = std::pair<token_t,std::string>;
     NONTERMINAL(JOKER)\
     NONTERMINAL(SERF)\
     NONTERMINAL(NUMERAL)\
+    NONTERMINAL(CHARACTER)\
     NONTERMINAL(NAME)\
     NONTERMINAL(_COUNT)\
     NONTERMINAL(OPTIONAL_START)\

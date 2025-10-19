@@ -238,6 +238,19 @@ void Assembler::assemble(assemblable_t & assemblable){
                 }
                 break;
 
+                case nonterminal_t::CHARACTER:{
+                    abstract_tree.focused = node;
+                    abstract_tree.end();
+                    const string & name = lexemes[*abstract_tree.cursor];
+                    variable_t ascii;
+                    if(!find(name,ascii,true)){
+                        ascii = allocate(segment_t::SCALARS);
+                        set(ascii,name[1]);
+                        declare(name,ascii,true);
+                    }
+                }
+                break;
+
                 case nonterminal_t::NAME:{
                     abstract_tree.focused = node;
                     abstract_tree.end();
@@ -501,6 +514,7 @@ void Assembler::assemble(assemblable_t & assemblable){
                 }
                 break;
 
+                case nonterminal_t::CHARACTER:
                 case nonterminal_t::NUMERAL:
                 case nonterminal_t::NAME:{
                     abstract_tree.focused = node;
