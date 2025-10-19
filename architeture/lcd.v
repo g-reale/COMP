@@ -37,11 +37,11 @@ ENTITY LCD_Display IS
 -- *see LCD Controller's Datasheet for other graphics characters available
 */
 		
-module LCD(clock, ascii, ready, consume, lcd_rs, lcd_e, lcd_rw, lcd_data);
+module lcd(clock, ascii, ready, consume, lcd_rs, lcd_en, lcd_rw, lcd_data);
 
 input clock, consume;
 input [7:0] ascii;
-output lcd_rs, lcd_e, lcd_rw;
+output lcd_rs, lcd_en, lcd_rw;
 output reg ready;
 inout [7:0] lcd_data;
 
@@ -53,20 +53,20 @@ MODE_SET = 4'h3,
 WRITE = 4'h4,
 LINE2 = 4'h5,
 RETURN_HOME = 4'h6,
-DROP_LCD_E = 4'h7,
+DROP_LCD_EN = 4'h7,
 RESET1 = 4'h8,
 RESET2 = 4'h9,
 RESET3 = 4'ha,
 DISPLAY_OFF = 4'hb,
-DISPLAY_CLEAR = 4'hc;
-WIAT = 4'hd;
+DISPLAY_CLEAR = 4'hc,
+WAIT = 4'hd;
 
 reg [3:0] state, next_command;
 // Enter new ASCII hex data above for LCD Display
 reg [7:0] ldc_data_value;
 reg [19:0] CLK_COUNT_400HZ;
 reg [4:0] CHAR_COUNT;
-reg CLK_400HZ, lcd_rw_int, lcd_e, lcd_rs;
+reg CLK_400HZ, lcd_rw_int, lcd_en, lcd_rs;
 
 // BIDIRECTIONAL TRI STATE LCD DATA BUS
 assign lcd_data = (lcd_rw_int? 8'bZZZZZZZZ: ldc_data_value);
@@ -91,85 +91,85 @@ always @(posedge CLK_400HZ)
 // see Hitachi HD44780 family data sheet for LCD command and timing details
 	begin
       ready <= 0;
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h38;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= RESET2;
 	  CHAR_COUNT <= 5'b00000;
 	end
 	RESET2:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h38;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= RESET3;
 	end
 	RESET3:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h38;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= FUNC_SET;
 	end
 // EXTRA STATES ABOVE ARE NEEDED FOR RELIABLE PUSHBUTTON RESET OF LCD
 
 	FUNC_SET:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h38;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= DISPLAY_OFF;
 	end
 
 // Turn off Display and Turn off cursor
 	DISPLAY_OFF:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h08;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= DISPLAY_CLEAR;
 	end
 
 // Clear Display and Turn off cursor
 	DISPLAY_CLEAR:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h01;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= DISPLAY_ON;
 	end
 
 // Turn on Display and Turn off cursor
 	DISPLAY_ON:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h0C;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= MODE_SET;
 	end
 
 // Set write mode to auto increment address and move cursor to the right
 	MODE_SET:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h06;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= WAIT;
 	end
 
@@ -184,8 +184,8 @@ always @(posedge CLK_400HZ)
 // Write ASCII hex character in first LCD character location
 	WRITE:
 	begin
-	  state <= DROP_LCD_E;
-	  lcd_e <= 1'b1;
+	  state <= DROP_LCD_EN;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b1;
 	  lcd_rw_int <= 1'b0;
 	// ASCII character to output
@@ -216,30 +216,30 @@ always @(posedge CLK_400HZ)
 // Set write address to line 2 character 1
 	LINE2:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'hC0;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= WAIT;
 	end
 
 // Return write address to first character postion on line 1
 	RETURN_HOME:
 	begin
-	  lcd_e <= 1'b1;
+	  lcd_en <= 1'b1;
 	  lcd_rs <= 1'b0;
 	  lcd_rw_int <= 1'b0;
 	  ldc_data_value <= 8'h80;
-	  state <= DROP_LCD_E;
+	  state <= DROP_LCD_EN;
 	  next_command <= WAIT;
 	end
 
 // The next three states occur at the end of each command or data transfer to the LCD
 // Drop LCD E line - falling edge loads inst/data to LCD controller
-	DROP_LCD_E:
+	DROP_LCD_EN:
 	begin
-	  lcd_e <= 1'b0;
+	  lcd_en <= 1'b0;
 	  state <= HOLD;
 	end
 // Hold LCD inst/data valid after falling edge of E line				

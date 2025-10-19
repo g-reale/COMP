@@ -64,6 +64,10 @@ Assembler::Assembler() : contexts({string(""),{}}){
         .segment = (size_t)segment_t::RESERVED,
         .address = (size_t)reserved_t::DISP
     };
+    global->mapping["LCDADDR"] = {
+        .segment = (size_t)segment_t::RESERVED,
+        .address = (size_t)reserved_t::LCD
+    };
 }
 
 void Assembler::declare(const string& name, const variable_t& variable, bool global_context){

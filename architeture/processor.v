@@ -1,7 +1,6 @@
 `include "global.v"
 
 module processor(
-    
     `ifdef DEBUG
     output reg read_clock,
     output reg write_clock,
@@ -22,11 +21,14 @@ module processor(
     output reg [4:0] state = INSTRUCTION_FETCH,
     output reg [4:0] goto = 0,
     output reg [`word_l]query,
+	 output reg [7:0] character,
+    output wire ready,
+    output reg consume,
     `endif 
 
     input wire CLOCK_50,
     input wire [17:0] SW,
-	input wire [3:0] KEY,
+	 input wire [3:0] KEY,
     output wire [6:0] HEX0,
     output wire [6:0] HEX1,
     output wire [6:0] HEX2,
@@ -37,8 +39,8 @@ module processor(
     output wire [6:0] HEX7,
     output wire [7:0]LCD_DATA,
     output wire LCD_RS,
-    output wire LCD_E,
-    output wire LCD_RW,
+    output wire LCD_EN,
+    output wire LCD_RW
 );
 
     // clock divider 
@@ -120,38 +122,37 @@ module processor(
      lcd l(
         .ascii(character),
         .clock(CLOCK_50),
-        .reset(1),
         .ready(ready),
         .consume(consume),
         .lcd_rs(LCD_RS),
-        .lcd_e(LCD_E),
+        .lcd_en(LCD_EN),
         .lcd_rw(LCD_RW),
         .lcd_data(LCD_DATA)
      );
 
-    localparam INSTRUCTION_FETCH                      = 0;
-    localparam INSTRUCTION_FETCH_1                    = 1;
-    localparam INSTRUCTION_FETCH_2                    = 2;
-    localparam INSTRUCTION_FETCH_3                    = 3;
-    localparam ARITHMETIC                             = 4;
-    localparam ARITHMETIC_1                           = 5;
-    localparam SET_DEFERENCE_DESTINATION              = 6;
-    localparam SET_DEFERENCE_DESTINATION_1            = 7;
-    localparam SET_DEFERENCE_DESTINATION_IMMEDIATE    = 8;
-    localparam SET_DEFERENCE_DESTINATION_IMMEDIATE_1  = 9;
-    localparam SET_DEFERENCE_SOURCE                   = 10;
-    localparam SET_DEFERENCE_SOURCE_1                 = 11;
-    localparam SET                                    = 12;
-    localparam DEFERENCE                              = 13;
-    localparam DEFERENCE_1                            = 14;
-	localparam DEFERENCE_2                            = 15;
-    localparam WRITE                                  = 16;
-    localparam WRITE_1                                = 17;
-    localparam WRITE_BACK                             = 18;
-    localparam WRITE_BACK_1                           = 19;
-    localparam SWICH_READ                             = 20;
-    localparam LCD                                    = 21;
-    localparam LCD_1                                  = 22;
+    localparam INSTRUCTION_FETCH                      = 5'd0;
+    localparam INSTRUCTION_FETCH_1                    = 5'd1;
+    localparam INSTRUCTION_FETCH_2                    = 5'd2;
+    localparam INSTRUCTION_FETCH_3                    = 5'd3;
+    localparam ARITHMETIC                             = 5'd4;
+    localparam ARITHMETIC_1                           = 5'd5;
+    localparam SET_DEFERENCE_DESTINATION              = 5'd6;
+    localparam SET_DEFERENCE_DESTINATION_1            = 5'd7;
+    localparam SET_DEFERENCE_DESTINATION_IMMEDIATE    = 5'd8;
+    localparam SET_DEFERENCE_DESTINATION_IMMEDIATE_1  = 5'd9;
+    localparam SET_DEFERENCE_SOURCE                   = 5'd10;
+    localparam SET_DEFERENCE_SOURCE_1                 = 5'd11;
+    localparam SET                                    = 5'd12;
+    localparam DEFERENCE                              = 5'd13;
+    localparam DEFERENCE_1                            = 5'd14;
+	 localparam DEFERENCE_2                            = 5'd15;
+    localparam WRITE                                  = 5'd16;
+    localparam WRITE_1                                = 5'd17;
+    localparam WRITE_BACK                             = 5'd18;
+    localparam WRITE_BACK_1                           = 5'd19;
+    localparam SWICH_READ                             = 5'd20;
+    localparam LCD                                    = 5'd21;
+    localparam LCD_1                                  = 5'd22;
 
 
     always @(posedge clock) begin

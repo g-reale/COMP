@@ -31,4 +31,4 @@
 `define SWITCH_ADDR 8
 `define LCD_ADDR 9
 
-`define DEBUG 1
+//`define DEBUG 1

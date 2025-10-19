@@ -27,7 +27,8 @@
     RESERVED(TRASH)\
     RESERVED(ONE_CT)\
     RESERVED(DISP)\
-    RESERVED(SWITCH)
+    RESERVED(SWITCH)\
+    RESERVED(LCD)\
 
 class Segment{
     private:

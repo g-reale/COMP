@@ -17,7 +17,7 @@ module ram
 	reg [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH-1:0];
 	
 	initial begin
-	$readmemb("ram.mem",ram);
+	$readmemh("ram.mif",ram);
 	end
 	
 	always @ (posedge write_clock)
