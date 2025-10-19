@@ -29,5 +29,6 @@
 `define PC_ADDR 0
 `define DISP_ADDR 7
 `define SWITCH_ADDR 8
+`define LCD_ADDR 9
 
 `define DEBUG 1

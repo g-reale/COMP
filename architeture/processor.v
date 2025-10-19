@@ -34,8 +34,11 @@ module processor(
     output wire [6:0] HEX4,
     output wire [6:0] HEX5,
     output wire [6:0] HEX6,
-    output wire [6:0] HEX7
-
+    output wire [6:0] HEX7,
+    output wire [7:0]LCD_DATA,
+    output wire LCD_RS,
+    output wire LCD_E,
+    output wire LCD_RW,
 );
 
     // clock divider 
@@ -77,6 +80,9 @@ module processor(
     reg [4:0] state = INSTRUCTION_FETCH;
     reg [4:0] goto = 0;
     reg [`word_l]query;
+    reg [7:0] character;
+    wire ready;
+    reg consume;
     `endif
 
     ram r(
@@ -111,6 +117,18 @@ module processor(
         .hex7(HEX7)
 	 );
 
+     lcd l(
+        .ascii(character),
+        .clock(CLOCK_50),
+        .reset(1),
+        .ready(ready),
+        .consume(consume),
+        .lcd_rs(LCD_RS),
+        .lcd_e(LCD_E),
+        .lcd_rw(LCD_RW),
+        .lcd_data(LCD_DATA)
+     );
+
     localparam INSTRUCTION_FETCH                      = 0;
     localparam INSTRUCTION_FETCH_1                    = 1;
     localparam INSTRUCTION_FETCH_2                    = 2;
@@ -132,6 +150,8 @@ module processor(
     localparam WRITE_BACK                             = 18;
     localparam WRITE_BACK_1                           = 19;
     localparam SWICH_READ                             = 20;
+    localparam LCD                                    = 21;
+    localparam LCD_1                                  = 22;
 
 
     always @(posedge clock) begin
@@ -189,15 +209,32 @@ module processor(
                         displaying <= result;
                         write <= result;
                         state <= WRITE;
-                        goto	<= WRITE_BACK_1;
+                        goto  <= WRITE_BACK_1;
+                    end
+
+                    `LCD_ADDR: begin
+                        state <= ready ? LCD : WRITE_BACK;
                     end
                     
                     default: begin
                         write <= result;
                         state <= WRITE;
-                        goto	<= WRITE_BACK_1;
+                        goto  <= WRITE_BACK_1;
                     end
                 endcase
+            end
+
+            LCD: begin
+                consume <= 1;
+                character <= result;
+                state <= ready ? LCD : LCD_1;
+            end
+            
+            LCD_1: begin
+                consume <= 0;
+                write <= result;
+                state <= WRITE;
+                goto  <= WRITE_BACK_1;
             end
 
             WRITE_BACK_1: begin
