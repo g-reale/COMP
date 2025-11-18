@@ -1,0 +1,17 @@
+void main(void){
+    LCDADDR = 'F';
+    LCDADDR = 'E';
+    LCDADDR = 'R';
+    LCDADDR = 'N';
+    LCDADDR = 'A';
+    LCDADDR = 'N';
+    LCDADDR = 'D';
+    LCDADDR = 'A';
+    LCDADDR = ' ';
+    LCDADDR = 'N';
+    LCDADDR = 'O';
+    LCDADDR = 'C';
+    LCDADDR = 'E';
+    LCDADDR = 'G';
+    LCDADDR = 'A';
+}

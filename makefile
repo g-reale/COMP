@@ -1,20 +1,30 @@
-COMPILER = gcc
+COMPILER = g++
 CFLAGS = -g -Wall -Wextra -fsanitize=address
 LIBS = 
 INCLUDE = -Idgenerate -Iggenerate
 
-SRC_FILES = $(wildcard *.c)
-OBJ_FILES = $(patsubst %.c, object/%.o, $(SRC_FILES))
+SRC_FILES = $(wildcard *.cpp)
+OBJ_FILES = $(patsubst %.cpp, object/%.o, $(SRC_FILES))
+# EXPANDED_FILES = $(patsubst %.cpp, expanded/%.i, $(SRC_FILES))
 TARGET = g--
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ_FILES)
+$(TARGET): $(OBJ_FILES) #$(EXPANDED_FILES)
 	$(COMPILER) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
 
-object/%.o: %.c
+# expanded/%.i: %.cpp
+# 	@mkdir -p expanded
+# 	$(COMPILER) -E $(CFLAGS) $(INCLUDE) -c $< -o $@
+
+expanded/Globals.i:Globals.hpp 
+	@mkdir -p expanded
+	$(COMPILER) -E $(CFLAGS) $(INCLUDE) -c $< -o $@
+
+object/%.o: %.cpp
 	@mkdir -p object
 	$(COMPILER) $(CFLAGS) $(INCLUDE) -c $< -o $@
+
 
 clean:
 	rm -rf object $(TARGET)
@@ -22,12 +32,4 @@ clean:
 run: all
 	./main || reset
 
-debug: all
-	./main 2> stderr.log || reset && cat stderr.log
-
-remake: clean
-	cd dgenerate && ./dgen.py
-	cd ggenerate && ./ggen.py
-	make all
-
-.PHONY: all clean run debug remake
+.PHONY: all clean run

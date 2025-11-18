@@ -21,9 +21,12 @@ module processor(
     output reg [4:0] state = INSTRUCTION_FETCH,
     output reg [4:0] goto = 0,
     output reg [`word_l]query,
-	 output reg [7:0] character,
+	output reg [7:0] character,
     output wire ready,
     output reg consume,
+    output reg interrupt;
+    output reg [`word_l]quantum;
+    output reg [`word_l]backtrack;
     `endif 
 
     input wire CLOCK_50,
@@ -85,6 +88,9 @@ module processor(
     reg [7:0] character;
     wire ready;
     reg consume;
+    reg interrupt;
+    reg [`word_l]quantum;
+    reg [`word_l]backtrack;
     `endif
 
     ram r(
@@ -145,7 +151,7 @@ module processor(
     localparam SET                                    = 5'd12;
     localparam DEFERENCE                              = 5'd13;
     localparam DEFERENCE_1                            = 5'd14;
-	 localparam DEFERENCE_2                            = 5'd15;
+	localparam DEFERENCE_2                            = 5'd15;
     localparam WRITE                                  = 5'd16;
     localparam WRITE_1                                = 5'd17;
     localparam WRITE_BACK                             = 5'd18;
@@ -216,6 +222,22 @@ module processor(
                     `LCD_ADDR: begin
                         state <= ready ? LCD : WRITE_BACK;
                     end
+
+                    `QUANTUM: begin
+                        
+                        if(result == 0) begin
+                            interrupt <= 0;
+                            goto <= INSTRUCTION_FETCH;
+                        end
+                        else begin
+                            interrupt <= 1;
+                            goto <= INTERRUPTION_START;
+                        end
+
+                        quantum     <= result;
+                        write       <= result;
+                        state       <= WRITE;
+                    end
                     
                     default: begin
                         write <= result;
@@ -223,6 +245,33 @@ module processor(
                         goto  <= WRITE_BACK_1;
                     end
                 endcase
+            end
+
+            WRITE_BACK_1: begin
+                write <= nxtpc;
+                write_into <= `PC_ADDR;
+                state <= WRITE;
+                goto <= INSTRUCTION_FETCH;
+            end
+
+            INTERRUPTION_START: begin
+                read_from <= `PC_ADDR;
+                state   <= DEFERENCE;
+                goto    <= INTERRUPTION_START_1;
+            end
+
+            INTERRUPTION_START_1: begin
+                backtrack <= query + 1;
+                read_from <= `DESTINATION;
+                state <= DEFERENCE;
+                goto <= INTERRUPTION_START_2;
+            end
+
+            INTERRUPTION_START_2: begin
+                write_into <= `PC;
+                write <= query;
+                state <= WRITE;
+                goto  <= INSTRUCTION_FETCH;
             end
 
             LCD: begin
@@ -238,17 +287,17 @@ module processor(
                 goto  <= WRITE_BACK_1;
             end
 
-            WRITE_BACK_1: begin
-                write <= nxtpc;
-                write_into <= `PC_ADDR;
-                state <= WRITE;
-                goto <= INSTRUCTION_FETCH;
-            end
-
             INSTRUCTION_FETCH: begin
+                quantum <= quantum - interrupt;
                 read_from <= `PC_ADDR;
                 state <= DEFERENCE;
-                goto <= INSTRUCTION_FETCH_1;
+                
+                if(interrupt && !quantum) begin
+                    interrupt <= 0;
+                    goto <= INTERRUPTION_END;
+                end
+                else 
+                    goto <= INSTRUCTION_FETCH_1;
             end
 
             INSTRUCTION_FETCH_1: begin
@@ -305,6 +354,20 @@ module processor(
                     end
 
                 endcase
+            end
+
+            INTERRUPTION_END: begin
+                write_into <= `DESTINATION;
+                write <= query;
+                state <= WRITE;
+                goto <= INTERRUPTION_END_1;
+            end
+
+            INTERRUPTION_END_1: begin
+                write <= backtrack;
+                write_into <= `PC_ADDR;
+                state <= WRITE;
+                goto <=INSTRUCTION_FETCH;
             end
 
             ARITHMETIC: begin
