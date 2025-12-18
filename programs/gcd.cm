@@ -4,8 +4,13 @@ int gcd (int u, int v)
 	else return gcd(v,u-u/v*v);
 }
 
-void main(void)
-{	int x; int y;
+void main(void){	
+	
+	int x; int y;
+
+	LCDADDR = 255;
+	LCDADDR = 'g'; LCDADDR = 'c'; LCDADDR = 'd';
+
 	x = SWICHADDR; y = SWICHADDR;
 	DISPADDR = gcd(x,y);
 }

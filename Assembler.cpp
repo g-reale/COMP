@@ -336,6 +336,14 @@ void Assembler::assemble(assemblable_t & assemblable){
                 case nonterminal_t::VOID_FUN_DECL:
                 case nonterminal_t::INT_FUN_DECL:{
                     
+                    if(contexts.current().name == "main"){
+                        program.push_back({
+                            operator_t::SET,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::QUANTUM},
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::MEM} //ps. MEM = 0 -> QUANTUM = 0 -> disable interruptions
+                        });
+                    }
+
                     variable_t scalar = recycle(segment_t::SCALARS);
                     program.insert(program.end(),{
                         {operator_t::SETDS,
@@ -381,6 +389,7 @@ void Assembler::assemble(assemblable_t & assemblable){
                             {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
                         },
                         {operator_t::SUB,
+                            {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
                             {(size_t)segment_t::RESERVED,(size_t)reserved_t::STACK},
                             {(size_t)segment_t::RESERVED,(size_t)reserved_t::ONE_CT}
                         },

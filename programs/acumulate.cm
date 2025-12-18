@@ -2,12 +2,15 @@ void main(void){
     int amount;
     int result;
 
+    LCDADDR = 255;
+    LCDADDR = 'a'; LCDADDR = 'c'; LCDADDR = 'u'; LCDADDR = 'm'; LCDADDR = 'u'; 
+    LCDADDR = 'l'; LCDADDR = 'a'; LCDADDR = 't'; LCDADDR = 'e'; 
+
     result = 0;
     amount = SWICHADDR;
     while(amount){
         result = result + SWICHADDR;
         amount = amount - 1;
+        DISPADDR = result;
     }
-
-    DISPADDR = result;
 }

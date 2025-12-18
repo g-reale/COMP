@@ -16,15 +16,15 @@
 `define SETDDI  14 // ram[ram[a]] = b
 `define SETI    15 // ram[a] = b
 
-`define WORD_LENGTH 34
-`define OP_LENGTH 4
-`define ARG_LENGTH 10 // (34 - 4)/3
-`define MEM_SIZE 1024 // 2^10
+`define WORD_LENGTH 37
+`define OP_LENGTH   4
+`define ARG_LENGTH  11   // (34 - 4)/3
+`define MEM_SIZE    2048 // 2^11
 
-`define word_l 33:0
-`define op_l 3:0
-`define arg_l 9:0
-`define mem_s 1023:0
+`define word_l      36:0
+`define op_l        3:0
+`define arg_l       10:0
+`define mem_s       2047:0
 
 `define PC_ADDR 0
 `define DISP_ADDR 7
@@ -33,4 +33,5 @@
 `define QUANTUM 10
 `define DESTINATION 11
 
+`define ROM_START 1792
 //`define DEBUG 1

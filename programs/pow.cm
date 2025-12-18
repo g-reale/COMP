@@ -3,6 +3,9 @@ void main(void){
 	int exponent;
 	int result;
 
+	LCDADDR = 255;
+    LCDADDR = 'p'; LCDADDR = 'o'; LCDADDR = 'w';
+
 	base = SWICHADDR;
 	exponent = SWICHADDR;
 	result = 1;

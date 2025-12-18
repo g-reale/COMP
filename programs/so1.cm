@@ -7,11 +7,15 @@ int RAM_START;
 int RAM_PROGRAM_AMOUNT;
 int RAM_PROGRAM_POSITIONS[10];
 int RAM_PROGRAM_SIZES[10];
+int RAM_PROGRAM_ENTRYPOINTS[10];
 
 int OPERATOR_LEN;
 int ARGUMENT_LEN;
 int OPERATOR_SHIFT;
 int ARGUMENT_SHIFT;
+
+int TTL;
+int RUNNING;
 
 int PC;
 int ASSEMBLY;
@@ -23,9 +27,12 @@ int ONE_CT;
 int DISP;
 int SWITCH;
 int LCD;
+int QUANTUM;
+int DESTINATION;
 
 int STACK_SPACING;
 
+/*
 int power(int base, int exponent){
     int result;
     result = 1;
@@ -35,6 +42,7 @@ int power(int base, int exponent){
     }
     return result;
 }
+*/
 
 void display(int number){
     int digits[20];
@@ -83,16 +91,19 @@ void show(int number){
 }
 
 int request(void){
-    DISPADDR = 1818;
+    LCDADDR = 255;
+    LCDADDR = 'p'; LCDADDR = 'r'; LCDADDR = 'o'; LCDADDR = 'c'; LCDADDR = 'e'; LCDADDR = 'e'; LCDADDR = 'd'; LCDADDR = '?';
     return SWICHADDR > 0;
 }   
 
 void greeting(void){
     LCDADDR = 'S'; LCDADDR = 'O'; LCDADDR = 'L';
     LCDADDR = '.'; LCDADDR = 'S'; LCDADDR = 'O';
+    stop();
 }
 
 void found(void){
+
     int start;
     int end;
     int i;
@@ -143,11 +154,11 @@ void load(void){
         LCDADDR = 255;
         LCDADDR = 'l'; LCDADDR = 'o'; LCDADDR = 'a'; LCDADDR = 'd'; LCDADDR = ':'; LCDADDR = ' ';
         who = SWICHADDR;
-        display(who);
-        
+        pause(who);
+
         if(who >= ROM_PROGRAM_AMOUNT)
             return;
-
+        
         size = ROM_PROGRAM_SIZES[who];
         start = RAM_PROGRAM_POSITIONS[RAM_PROGRAM_AMOUNT];
         offset = ROM_PROGRAM_POSITIONS[who] - start;
@@ -161,7 +172,7 @@ void load(void){
             start = start + 1;
         }
 
-        RAM_PROGRAM_POSITIONS[RAM_PROGRAM_AMOUNT + 1] = RAM_PROGRAM_AMOUNT[RAM_PROGRAM_AMOUNT] + STACK_SPACING + size;
+        RAM_PROGRAM_POSITIONS[RAM_PROGRAM_AMOUNT + 1] = RAM_PROGRAM_POSITIONS[RAM_PROGRAM_AMOUNT] + STACK_SPACING + size;
         RAM_PROGRAM_SIZES[RAM_PROGRAM_AMOUNT] = size;
         RAM_PROGRAM_AMOUNT = RAM_PROGRAM_AMOUNT + 1;
         DISPADDR = RAM_PROGRAM_AMOUNT;
@@ -170,39 +181,106 @@ void load(void){
 
 void clear(void){
     LCDADDR = 255;
-    LCDADDR = 'c'; LCDADDR = 'l'; LCDADDR = 'e'; LCDADDR = 'a'; LCDADDR = 'r'; LCDADDR = 'i'; LCDADDR = 'n'; LCDADDR = 'g';
+    LCDADDR = 'c'; LCDADDR = 'l'; LCDADDR = 'e'; LCDADDR = 'a'; LCDADDR = 'r'; LCDADDR = 'i'; LCDADDR = 'n'; LCDADDR = 'g'; LCDADDR = '.'; LCDADDR = '.'; LCDADDR = '.';
     RAM_PROGRAM_AMOUNT  = 0;
     RAM_PROGRAM_POSITIONS[0] = RAM_START;
+    LCDADDR = 'd'; LCDADDR = 'o'; LCDADDR = 'n'; LCDADDR = 'e';
+    stop();
+}
+
+void configure(void){
+    LCDADDR = 255;
+    LCDADDR = 'q'; LCDADDR = 'u'; LCDADDR = 'a'; LCDADDR = 'n'; LCDADDR = 't'; LCDADDR = 'u'; LCDADDR = 'm'; LCDADDR = ':'; LCDADDR = ' ';
+    TTL = SWICHADDR;
+    pause(TTL);
+}
+
+void done(void){
+
+    int i;
+    int j;
+
+    LCDADDR = 255;
+    LCDADDR = 'i'; LCDADDR = 'd'; LCDADDR = 'x'; LCDADDR = ':'; LCDADDR = ' '; display(RUNNING); 
+    LCDADDR = ' '; LCDADDR = 'd'; LCDADDR = 'o'; LCDADDR = 'n'; LCDADDR = 'e'; stop();
+
+    j = RUNNING;
+    i = RUNNING + 1;
+    while(i < RAM_PROGRAM_AMOUNT){
+        RAM_PROGRAM_ENTRYPOINTS[j] = RAM_PROGRAM_ENTRYPOINTS[i];
+        RAM_PROGRAM_POSITIONS[j] = RAM_PROGRAM_POSITIONS[i];
+        RAM_PROGRAM_SIZES[j] = RAM_PROGRAM_SIZES[i];
+        j = j + 1;
+        i = i + 1;
+    }
+
+    RAM_PROGRAM_AMOUNT = RAM_PROGRAM_AMOUNT - 1;
+    RUNNING = RUNNING * (RUNNING < RAM_PROGRAM_AMOUNT);
+}
+
+void run(void){
+    
+    int entrypoint;
+    entrypoint = RAM_PROGRAM_ENTRYPOINTS[RUNNING];
+
+    LCDADDR = 255;
+    LCDADDR = 'i'; LCDADDR = 'd'; LCDADDR = 'x'; LCDADDR = ':'; LCDADDR = ' '; display(RUNNING); LCDADDR = ' '; 
+    LCDADDR = 'j'; LCDADDR = 'm'; LCDADDR = 'p'; LCDADDR = ':'; LCDADDR = ' '; display(entrypoint); LCDADDR = ' '; 
+    LCDADDR = 'v'; LCDADDR = 'a'; LCDADDR = 'l'; LCDADDR = ':'; LCDADDR = ' '; pause(MEM[entrypoint]);
+
+    if(TTL){
+        MEM[DESTINATION] = entrypoint;
+        MEM[QUANTUM] = TTL;
+
+        LCDADDR = 255;
+        display(RAM_PROGRAM_ENTRYPOINTS[RUNNING]); LCDADDR = '-'; LCDADDR = '>'; LCDADDR = ' '; 
+        RAM_PROGRAM_ENTRYPOINTS[RUNNING] = MEM[DESTINATION]; /* after interruption */
+        pause(RAM_PROGRAM_ENTRYPOINTS[RUNNING]);
+    }
+    else{
+        MEM[PC] = entrypoint;
+    }
+
+    RUNNING = RUNNING + 1;
+    RUNNING = RUNNING * (RUNNING < RAM_PROGRAM_AMOUNT);
+}
+
+void execute(void){
+    while(RAM_PROGRAM_AMOUNT)
+        run();
 }
 
 void bind(void){
     
     int i;
     i = 0;
+
     while(i < RAM_PROGRAM_AMOUNT){
         int end;
         int base;
         int start;
         int aux;
+        int stack;
 
         base = RAM_PROGRAM_POSITIONS[i];
         LCDADDR = 255;
-        LCDADDR = 'b'; LCDADDR = 'i'; LCDADDR = 'n'; LCDADDR = 'd'; LCDADDR = 'i'; LCDADDR = 'n'; LCDADDR = 'g'; LCDADDR = ':'; LCDADDR = ' '; pause(base); LCDADDR = ' ';
+        LCDADDR = 'b'; LCDADDR = 'i'; LCDADDR = 'n'; LCDADDR = 'd'; LCDADDR = 'i'; LCDADDR = 'n'; LCDADDR = 'g'; LCDADDR = ':'; LCDADDR = ' '; pause(base);
         
         MEM[base + PC]             = base + MEM[base + PC];
         MEM[base + ASSEMBLY]       = base + MEM[base + ASSEMBLY];
         MEM[base + RELATIVE_START] = base + MEM[base + RELATIVE_START];
         MEM[base + STACK]          = base + MEM[base + STACK];
+        RAM_PROGRAM_ENTRYPOINTS[i] = MEM[base + PC];
+        stack                      = MEM[base + STACK];
+        MEM[stack]                 = done;
 
         start = MEM[base + RELATIVE_START];
         end = MEM[base + ASSEMBLY];
         while(start < end){
-            LCDADDR = 255;
             MEM[start] = MEM[start] + base;
             start = start + 1;
         }
 
-        start = MEM[base + ASSEMBLY];
         end = MEM[base + STACK];
         while(start < end){
             int word;
@@ -222,7 +300,7 @@ void bind(void){
             while(j < 3){
                 int argument;
                 argument = (word * lshift) / rshift;
-                binded = binded + (argument + base * (argument != PC) * (argument != DISP) * (argument != LCD) * (argument != SWITCH)) * bshift;
+                binded = binded + (argument + base * (argument != PC) * (argument != DISP) * (argument != LCD) * (argument != SWITCH) * (argument != QUANTUM)) * bshift;
                 bshift = bshift * ARGUMENT_SHIFT; 
                 lshift = lshift / ARGUMENT_SHIFT;
                 j = j + 1;
@@ -237,29 +315,8 @@ void bind(void){
     }
 }
 
-void done(void){
-    LCDADDR = 255;
-    LCDADDR = 'c'; LCDADDR = 'o'; LCDADDR = 'n'; LCDADDR = 's'; LCDADDR = 'g'; LCDADDR = 'u'; LCDADDR = 'i'; 
-    LCDADDR = ' '; LCDADDR = 'd'; LCDADDR = 'n'; LCDADDR = 'v'; pause();
-}
-
-void execute(void){
-    int entrypoint;
-    int stack;
-    int base;
-
-    base = RAM_PROGRAM_POSITIONS[0];
-    entrypoint = MEM[base + PC];
-    stack      = MEM[base + STACK];
-
-    LCDADDR = 255;
-    LCDADDR = 'j'; LCDADDR = 'm'; LCDADDR = 'p'; LCDADDR = ':'; LCDADDR = ' '; display(entrypoint); LCDADDR = ' '; 
-    LCDADDR = 'v'; LCDADDR = 'a'; LCDADDR = 'l'; LCDADDR = ':'; LCDADDR = ' '; pause(MEM[entrypoint]);
-    MEM[stack]  = done;
-    MEM[PC]     = entrypoint;
-}
-
 void main(void){
+
     int callbacks[10];
     int ontrue[10];
     int onfalse[10];
@@ -267,10 +324,10 @@ void main(void){
     int state;
 
     ROM_START = 1792;            /* memory constants setting */
-    RAM_START = 1024;
+    RAM_START = 1300;
     RAM_PROGRAM_AMOUNT = 0;
     RAM_PROGRAM_POSITIONS[0] = RAM_START;
-    
+
     OPERATOR_LEN = 4;           /* slicing constants setting */
     ARGUMENT_LEN = 11;          /* try power later */
     OPERATOR_SHIFT = 16;
@@ -286,7 +343,10 @@ void main(void){
     DISP = 7;
     SWITCH = 8;
     LCD = 9;
+    QUANTUM = 10;
+    DESTINATION = 11;
 
+    RUNNING = 0;
     STACK_SPACING = 50;
     
     state = 0;                  /* state machine programming */
@@ -297,25 +357,29 @@ void main(void){
     ontrue[0]       = 1;
     onfalse[0]      = 1;
 
-    callbacks[1]    = found;    /* print found files */
-    ontrue[1]       = 2;        /* if yes choose loadout */
-    onfalse[1]      = 1;        /* if no choose print files again */
+    callbacks[1]    = found;     /* print found files */
+    ontrue[1]       = 2;         /* if yes choose loadout */
+    onfalse[1]      = 1;         /* if no print files again */
 
-    callbacks[2]    = load;     /* choose files to load */
-    ontrue[2]       = 4;        /* if yes bind files */
-    onfalse[2]      = 3;        /* if no clear ram */
+    callbacks[2]    = load;      /* choose files to load */
+    ontrue[2]       = 4;         /* if yes bind files */
+    onfalse[2]      = 3;         /* if no clear ram */
 
-    callbacks[3]    = clear;    /* clear ram (RAM_PROGRAM_AMOUNT = 0, RAM_PROGRAM_POSITIONS[0] = RAM_START) */
-    ontrue[3]       = 2;        /* if yes load files again */
-    onfalse[3]      = 1;        /* if no print found file  */
+    callbacks[3]    = clear;     /* clear ram (RAM_PROGRAM_AMOUNT = 0, RAM_PROGRAM_POSITIONS[0] = RAM_START) */
+    ontrue[3]       = 2;         /* if yes load files again */
+    onfalse[3]      = 1;         /* if no print found file  */
 
-    callbacks[4]    = bind;     /* bind the program to it's current ram position */
-    ontrue[4]       = 5;        /* if yes execute the binded programs */
-    onfalse[4]      = 3;        /* if no clear ram */
+    callbacks[4]    = bind;      /* bind the programs to their current ram position */
+    ontrue[4]       = 5;         /* if yes configure the quantum */
+    onfalse[4]      = 3;         /* if no clear ram */
 
-    callbacks[5]    = execute;  /* execute the binded programs */
-    ontrue[5]       = 5;        /* */
-    onfalse[5]      = 5;        /* */
+    callbacks[5]    = configure; /* configure the quantum */
+    ontrue[5]       = 6;         /* if yes goto program execution */
+    onfalse[5]      = 5;         /* if no change the quantum again */
+
+    callbacks[6]    = execute;   /* execute all loaded programs */
+    ontrue[6]       = 3;
+    onfalse[6]      = 3;
 
     while(1){
         int input;

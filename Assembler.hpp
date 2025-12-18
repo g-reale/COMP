@@ -29,7 +29,9 @@
     RESERVED(DISP)\
     RESERVED(SWITCH)\
     RESERVED(LCD)\
-    RESERVED(MEM)
+    RESERVED(QUANTUM)\
+    RESERVED(DESTINATION)\
+    RESERVED(MEM)\
 
 class Segment{
     private:

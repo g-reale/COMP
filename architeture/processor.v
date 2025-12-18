@@ -1,5 +1,3 @@
-`include "global.v"
-
 module processor(
     `ifdef DEBUG
     output reg read_clock,
@@ -24,14 +22,14 @@ module processor(
 	output reg [7:0] character,
     output wire ready,
     output reg consume,
-    output reg interrupt;
-    output reg [`word_l]quantum;
-    output reg [`word_l]backtrack;
+    output reg interruption;
+    output reg [`word_l] quantum;
+    output reg [`word_l] destination;
     `endif 
 
     input wire CLOCK_50,
     input wire [17:0] SW,
-	 input wire [3:0] KEY,
+	input wire [3:0] KEY,
     output wire [6:0] HEX0,
     output wire [6:0] HEX1,
     output wire [6:0] HEX2,
@@ -52,19 +50,19 @@ module processor(
     assign clock = CLOCK_50;
 
     `else
-    wire clock;
-    assign clock = CLOCK_50;
+    // wire clock;
+    // assign clock = CLOCK_50;
     
-//    reg clock;
-//    reg [25:0] divider = 26'd0;
-//    always @(posedge CLOCK_50) begin
-//        if(divider == 26'd25000000) begin //25000000
-//            clock <= !clock;
-//            divider <= 0;
-//        end else begin
-//            divider <= divider + 1;
-//       end
-//    end
+    reg clock;
+    reg [25:0] divider = 26'd0;
+    always @(posedge CLOCK_50) begin
+        if(divider == 26'd2) begin //25000000
+            clock <= !clock;
+            divider <= 0;
+        end else begin
+            divider <= divider + 1;
+      end
+    end
         
     reg read_clock;
     reg write_clock;
@@ -88,9 +86,9 @@ module processor(
     reg [7:0] character;
     wire ready;
     reg consume;
-    reg interrupt;
-    reg [`word_l]quantum;
-    reg [`word_l]backtrack;
+    reg interruption;
+    reg [`word_l] quantum;
+    reg [`word_l] destination;
     `endif
 
     ram r(
@@ -159,7 +157,11 @@ module processor(
     localparam SWICH_READ                             = 5'd20;
     localparam LCD                                    = 5'd21;
     localparam LCD_1                                  = 5'd22;
-
+    localparam INTERRUPTION_START                     = 5'd23;
+    localparam INTERRUPTION_START_1                   = 5'd24;
+    localparam INTERRUPTION_END                       = 5'd25;
+    localparam INTERRUPTION_END_1                     = 5'd26;
+    localparam INTERRUPTION_END_2                     = 5'd27;
 
     always @(posedge clock) begin
         case(state)
@@ -224,27 +226,43 @@ module processor(
                     end
 
                     `QUANTUM: begin
-                        
-                        if(result == 0) begin
-                            interrupt <= 0;
-                            goto <= INSTRUCTION_FETCH;
-                        end
-                        else begin
-                            interrupt <= 1;
+                        if (result) begin
+                            interruption <= 1;
+                            quantum <= result;
+                            read_from <= `DESTINATION;
+                            state <= DEFERENCE;
                             goto <= INTERRUPTION_START;
+                        end else begin
+                            interruption <= 0;
+                            quantum <= 0;
+                            state <= WRITE_BACK_1;
                         end
-
-                        quantum     <= result;
-                        write       <= result;
-                        state       <= WRITE;
                     end
-                    
+
                     default: begin
-                        write <= result;
-                        state <= WRITE;
-                        goto  <= WRITE_BACK_1;
+                        if (write_into < `ROM_START) begin // RAM
+                            write <= result;
+                            state <= WRITE;
+                            goto  <= WRITE_BACK_1;
+                        end else begin // ROM
+                            state <= WRITE_BACK_1;
+                        end
                     end
                 endcase
+            end
+
+            INTERRUPTION_START: begin
+                write_into <= `PC_ADDR;
+                write <= query;
+                state <= WRITE;
+                goto <= INTERRUPTION_START_1;
+            end
+
+            INTERRUPTION_START_1: begin
+                write_into <= `DESTINATION;
+                write <= nxtpc;
+                state <= WRITE;
+                goto <= INSTRUCTION_FETCH;
             end
 
             WRITE_BACK_1: begin
@@ -252,26 +270,6 @@ module processor(
                 write_into <= `PC_ADDR;
                 state <= WRITE;
                 goto <= INSTRUCTION_FETCH;
-            end
-
-            INTERRUPTION_START: begin
-                read_from <= `PC_ADDR;
-                state   <= DEFERENCE;
-                goto    <= INTERRUPTION_START_1;
-            end
-
-            INTERRUPTION_START_1: begin
-                backtrack <= query + 1;
-                read_from <= `DESTINATION;
-                state <= DEFERENCE;
-                goto <= INTERRUPTION_START_2;
-            end
-
-            INTERRUPTION_START_2: begin
-                write_into <= `PC;
-                write <= query;
-                state <= WRITE;
-                goto  <= INSTRUCTION_FETCH;
             end
 
             LCD: begin
@@ -288,16 +286,39 @@ module processor(
             end
 
             INSTRUCTION_FETCH: begin
-                quantum <= quantum - interrupt;
-                read_from <= `PC_ADDR;
-                state <= DEFERENCE;
-                
-                if(interrupt && !quantum) begin
-                    interrupt <= 0;
+                if((interruption && quantum) || (!interruption)) begin
+                    quantum <= quantum - interruption;
+                    read_from <= `PC_ADDR;
+                    state <= DEFERENCE;
+                    goto <= INSTRUCTION_FETCH_1;
+                end else begin
+                    interruption <= 0;
+                    quantum <= 0;
+                    read_from <= `DESTINATION;
+                    state <= DEFERENCE;
                     goto <= INTERRUPTION_END;
                 end
-                else 
-                    goto <= INSTRUCTION_FETCH_1;
+            end
+
+            INTERRUPTION_END: begin
+                destination <= query;
+                read_from <= `PC_ADDR;
+                state <= DEFERENCE;
+                goto <= INTERRUPTION_END_1;
+            end
+            
+            INTERRUPTION_END_1: begin
+                write_into <= `DESTINATION;
+                write <= query;
+                state <= WRITE;
+                goto <= INTERRUPTION_END_2;
+            end
+            
+            INTERRUPTION_END_2: begin
+                write_into <= `PC_ADDR;
+                write <= destination;
+                state <= WRITE;
+                goto <= INSTRUCTION_FETCH;
             end
 
             INSTRUCTION_FETCH_1: begin
@@ -354,20 +375,6 @@ module processor(
                     end
 
                 endcase
-            end
-
-            INTERRUPTION_END: begin
-                write_into <= `DESTINATION;
-                write <= query;
-                state <= WRITE;
-                goto <= INTERRUPTION_END_1;
-            end
-
-            INTERRUPTION_END_1: begin
-                write <= backtrack;
-                write_into <= `PC_ADDR;
-                state <= WRITE;
-                goto <=INSTRUCTION_FETCH;
             end
 
             ARITHMETIC: begin

@@ -1,0 +1,17 @@
+void main(void){
+    int number;
+    int result;
+    
+    LCDADDR = 255;
+    LCDADDR = 'f'; LCDADDR = 'a'; LCDADDR = 'c'; LCDADDR = 't'; 
+
+    number = SWICHADDR;
+    result = 1;
+    while(number){
+        result = result * number;
+        number = number - 1;
+    }
+
+    DISPADDR = result;
+    number = SWICHADDR;
+}

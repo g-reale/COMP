@@ -2,6 +2,9 @@ void main(void){
     int a;
     int b;
 
+    LCDADDR = 255;
+    LCDADDR = 'd'; LCDADDR = 'i'; LCDADDR = 'v';
+
     a = SWICHADDR;
     b = SWICHADDR;
 

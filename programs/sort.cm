@@ -34,13 +34,18 @@ void main(void)
 	int i;
     int halt;
 	i = 0;
-    size = 5;
+    size = 3;
+
+	LCDADDR = 255;
+	LCDADDR = 's'; LCDADDR = 'o'; LCDADDR = 'r'; LCDADDR = 't';
 
 	while (i < size){
 		vet[i] = SWICHADDR;
 		i = i + 1;
 	}
+
 	sort(vet,0,size);
+	
 	i = 0;
 	while (i < size){
 		DISPADDR = vet[i];

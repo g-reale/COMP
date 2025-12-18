@@ -1,34 +1,9 @@
-int dotprod(int a[], int b[], int size){
-    int i;
-    int result;
-    
-    i = 0;
-    result = 0;
-
-    while(i < size){
-        result = result + a[i] * b[i];
-        i = i + 1;
-    }
-
-    return result;
+int dotprod(int a, int b, int u, int v){
+    return a * u + b * v;
 }
 
 void main(void){
-    int a[2];
-    int b[2];
-    int i;
-
-    i = 0;
-    while(i < 2){
-        a[i] = SWICHADDR;
-        i = i + 1;
-    }
-
-    i = 0;
-    while(i < 2){
-        b[i] = SWICHADDR;
-        i = i + 1;
-    }
-
-    DISPADDR = dotprod(a,b,2);
+    LCDADDR = 255;
+    LCDADDR = 'd'; LCDADDR = 'o'; LCDADDR = 't';
+    DISPADDR = dotprod(SWICHADDR,SWICHADDR,SWICHADDR,SWICHADDR);
 }
