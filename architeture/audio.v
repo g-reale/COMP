@@ -33,61 +33,67 @@ module audio #(
     always @(posedge clock)
         counter <= counter + 1;
 
-    wire clk12Mhz = counter[1];
-    wire clk3Mhz  = counter[3];
-    wire clk48Khz = counter[9];
+    assign mclk   = ~counter[1]; //MAYBE INVERTED I DON'T KNOW
+    assign bclk   = counter[3];
+    assign daclrc = counter[9];
 
-    //manually configured delays to align the waves as required by the codec
-    delay #(.DELAY(2)) mdelay (.signal(clk12Mhz), .clock(clock), .delayed(mclk));
-    delay #(.DELAY(8)) bdelay (.signal(clk3Mhz),  .clock(clock), .delayed(bclk));
-    delay #(.DELAY(24)) lrdelay(.signal(clk48Khz), .clock(clock), .delayed(daclrc));
+    wire [9:0] next_count = counter + 2;
+    wire bclk_fall        = next_count[3] < counter[3];
+    wire daclrc_change    = next_count[9] != counter[9];
 
-    localparam SEND_DATA     = 0;
-    localparam SETUP_PADDING = 1;
-    localparam SEND_PADDING  = 2;
-    localparam SETUP_DATA    = 3;
+    localparam RESET    = 0;
+    localparam RESET_1  = 1;
+    localparam RESET_2  = 2;
+    localparam SEND     = 3;
+    localparam SEND_1   = 4;
+    localparam PAD      = 5;
+    localparam PAD_1    = 6;
 
     reg [WIDTH-1:0] sample = 0;
-    reg [1:0] state = SETUP_DATA;
-    reg [$clog2(WIDTH)-1:0] index = 0;
-    wire bedge;
-    rising bdetector(.signal(clk3Mhz), .clock(clock), .risen(bedge));
-
+    reg [2:0] state = RESET; //SETUP_DATA
+    reg [4:0] index;
+    
     always @(posedge clock) begin
-        if(bedge) begin
-            case (state)
-                
-                SEND_DATA: begin
-                    dacdat <= sample[WIDTH-1];
-                    sample <= sample << 1;
-                    index  <= index + 1;
-                    state  <= index == (WIDTH-2) ? SETUP_PADDING : SEND_DATA;
-                end
+        case (state)
+            
+            RESET: begin
+                index   <= 0;
+                consume <= 1;
+                state   <= RESET_1;
+            end
 
-                SETUP_PADDING: begin
-                    dacdat  <= sample[WIDTH-1];
-                    sample  <= sample << 1;
-                    index   <= 0;
-                    consume <= 1;
-                    state   <= SEND_PADDING;
-                end
+            RESET_1: begin
+                sample  <= consumed;
+                consume <= 0;
+                state   <= RESET_2;
+            end
 
-                SEND_PADDING: begin
-                    dacdat <= 0;
-                    index  <= index + 1;
-                    state  <= index == (WIDTH-2) ? SETUP_DATA : SEND_PADDING;
-                end
+            RESET_2: begin
+                state <= daclrc_change ? SEND : RESET_2;
+            end
 
-                SETUP_DATA: begin
-                    dacdat  <= 0;
-                    index   <= 0;
-                    consume <= 0;
-                    sample  <= consumed;
-                    state   <= SEND_DATA;
-                end
+            SEND: begin
+                dacdat <= sample[WIDTH-1];
+                sample <= sample << 1;
+                index  <= index + 1;
+                state  <= SEND_1;
+            end
 
-            endcase
-        end
+            SEND_1: begin
+                state <= bclk_fall ? (index == 16 ? PAD : SEND) : SEND_1;
+            end
+
+            PAD: begin
+                dacdat <= 0;
+                index  <= index + 1;
+                state  <= PAD_1;
+            end
+
+            PAD_1: begin
+                state <= bclk_fall ? (index == 32 ? PAD : RESET) : PAD_1;
+            end
+
+        endcase
     end
 
 endmodule

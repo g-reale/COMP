@@ -1,7 +1,7 @@
 `include "global.v"
 
 module square #(
-    parameter HALF_PERIOD = 1000
+    parameter HALF_PERIOD = 100
 )
 (
     input wire CLOCK_50,
