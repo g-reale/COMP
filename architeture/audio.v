@@ -37,7 +37,7 @@ module audio #(
     assign bclk   = counter[3];
     assign daclrc = counter[9];
 
-    wire [9:0] next_count = counter + 2;
+    wire [9:0] next_count = counter + 1;
     wire bclk_fall        = next_count[3] < counter[3];
     wire daclrc_change    = next_count[9] != counter[9];
 

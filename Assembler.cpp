@@ -72,6 +72,14 @@ Assembler::Assembler() : contexts({string(""),{}}){
         .segment = (size_t)segment_t::RESERVED,
         .address = (size_t)reserved_t::MEM
     };
+    global->mapping["AUDIO_SINK"] = {
+        .segment = (size_t)segment_t::RESERVED,
+        .address = (size_t)reserved_t::AUDIO_SINK
+    };
+    global->mapping["AUDIO_CAPACITY"] = {
+        .segment = (size_t)segment_t::RESERVED,
+        .address = (size_t)reserved_t::AUDIO_CAPACITY
+    };
 }
 
 void Assembler::declare(const string& name, const variable_t& variable, bool global_context){

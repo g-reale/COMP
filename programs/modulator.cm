@@ -1,0 +1,45 @@
+
+int SIN_AMPLITUDE;
+int SIN_DOME;
+
+/*
+int sin(int x){
+    int xa;
+    int xb;
+    int xc;
+
+    
+    if(x < SIN_DOME){
+        x = x - SIN_DOME;
+        xa = x * x;
+        xb = xa * x;
+        xc = xb * x;
+        return 33340519388/1018825 - (387106183*x)/31346958 - (1627178 * xa)/6197809495 + (2233 * xb)/5166279669 - xc/37901474938;
+    }
+    else{
+        xa = x * x;
+        xb = xa * x;
+        xc = xb * x;
+        return 10808867695/329433 + (222660485*x)/18030528 + (1151780 * xa)/4387051091 - (2233 * xb)/5166279669 + xc/37901474938;
+    }
+}
+*/
+
+void main(void){
+    int delta;
+    int wave;
+    int period;
+
+    SIN_AMPLITUDE = 65535;  /*2^16-1*/
+    SIN_DOME = 8191;        /*2^13-1*/
+
+    period = 1000;
+    wave = 0;
+    delta = SIN_AMPLITUDE / period;
+    while(1){
+        if(AUDIO_CAPACITY){
+            AUDIO_SINK = wave;
+            wave = wave + delta;
+        }
+    }
+}

@@ -32,8 +32,8 @@
 `define LCD_ADDR 9
 `define QUANTUM 10
 `define DESTINATION 11
-`define AUDIO_SINK 12
-`define AUDIO_CAPACITY 13
+`define AUDIO_SINK 13
+`define AUDIO_CAPACITY 14
 
 `define ROM_START 1792
 `define AUDIO_BUFFER 512

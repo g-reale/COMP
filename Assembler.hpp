@@ -32,6 +32,8 @@
     RESERVED(QUANTUM)\
     RESERVED(DESTINATION)\
     RESERVED(MEM)\
+    RESERVED(AUDIO_SINK)\
+    RESERVED(AUDIO_CAPACITY)\
 
 class Segment{
     private:

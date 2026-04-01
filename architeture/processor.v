@@ -25,6 +25,9 @@ module processor(
     output reg interruption;
     output reg [`word_l] quantum;
     output reg [`word_l] destination;
+    output wire [`word_l] capacity;
+    output reg [`word_l] sample;
+    output reg produce;
     `endif 
 
     input wire CLOCK_50,
@@ -41,7 +44,11 @@ module processor(
     output wire [7:0]LCD_DATA,
     output wire LCD_RS,
     output wire LCD_EN,
-    output wire LCD_RW
+    output wire LCD_RW,
+    output wire MCLK,
+    output wire BCLK,
+    output wire DACLRC,
+    output wire DACDAT
 );
 
     // clock divider 
@@ -89,6 +96,9 @@ module processor(
     reg interruption;
     reg [`word_l] quantum;
     reg [`word_l] destination;
+    wire [`word_l] capacity;
+    reg [`word_l] sample;
+    reg produce;
     `endif
 
     ram r(
@@ -134,6 +144,17 @@ module processor(
         .lcd_data(LCD_DATA)
      );
 
+     audio u(
+        .clock(CLOCK_50),
+        .produce(produce),
+        .produced(sample),
+        .capacity(capacity),
+        .mclk(MCLK),
+        .bclk(BCLK),
+        .daclrc(DACLRC),
+        .dacdat(DACDAT)
+     );
+
     localparam INSTRUCTION_FETCH                      = 5'd0;
     localparam INSTRUCTION_FETCH_1                    = 5'd1;
     localparam INSTRUCTION_FETCH_2                    = 5'd2;
@@ -162,6 +183,7 @@ module processor(
     localparam INTERRUPTION_END                       = 5'd25;
     localparam INTERRUPTION_END_1                     = 5'd26;
     localparam INTERRUPTION_END_2                     = 5'd27;
+    localparam AUDIO_WRITE                            = 5'd28;
 
     always @(posedge clock) begin
         case(state)
@@ -173,6 +195,11 @@ module processor(
 						if(SW[16:0] != 0) displaying <= SW[16:0];
 						if(SW[17]) state <= SWICH_READ;
 				    end
+
+                    `AUDIO_CAPACITY: begin
+                        query <= capacity;
+                        state <= goto;
+                    end
 					 
 					default: begin
 						read_clock <= 0;
@@ -239,16 +266,28 @@ module processor(
                         end
                     end
 
+                    `AUDIO_SINK: begin
+                        sample <= result;
+                        produce <= 0;
+                        state <= AUDIO_WRITE;
+                    end
+
                     default: begin
-                        if (write_into < `ROM_START) begin // RAM
+                        // if (write_into < `ROM_START) begin // RAM
                             write <= result;
                             state <= WRITE;
                             goto  <= WRITE_BACK_1;
-                        end else begin // ROM
-                            state <= WRITE_BACK_1;
-                        end
+                        // end else begin // ROM
+                        //     state <= WRITE_BACK_1;
+                        // end
                     end
                 endcase
+            end
+
+            AUDIO_WRITE: begin
+                produce <= 1;
+                state <= WRITE;
+                goto <= WRITE_BACK_1;
             end
 
             INTERRUPTION_START: begin
