@@ -185,7 +185,22 @@ module processor(
     localparam INTERRUPTION_END_2                     = 5'd27;
     localparam AUDIO_WRITE                            = 5'd28;
 
-    always @(posedge clock) begin
+    always @(posedge CLOCK_50) begin
+        
+        if (!KEY[0]) begin
+        state      <= INSTRUCTION_FETCH;
+        currpc     <= 0;
+        query      <= 0;
+        operator   <= 0;
+        arg_a      <= 0;
+        arg_b      <= 0;
+        read_from  <= 0;
+        write_into <= 0;
+        produce    <= 0;
+        interruption <= 0;
+        quantum <= 0;
+        end else begin
+        
         case(state)
             
 			DEFERENCE: begin
@@ -472,5 +487,6 @@ module processor(
 
             default: state <= INSTRUCTION_FETCH;
         endcase
+        end
     end
 endmodule

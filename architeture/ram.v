@@ -16,8 +16,18 @@ module ram
 	// Declare the RAM variable
 	reg [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH-1:0];
 	
+	integer i;
+
 	initial begin
-	$readmemh("ram.mif",ram);
+		$display("---- Loading RAM ----");
+		$readmemh("ram.mem", ram);
+
+		// Print first few locations
+		for (i = 0; i < 39; i = i + 1) begin
+			$display("[%0d]0x%h", i, ram[i]);
+		end
+
+		$display("---------------------");
 	end
 	
 	always @ (posedge write_clock)

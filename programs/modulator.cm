@@ -1,45 +1,69 @@
 
 int SIN_AMPLITUDE;
-int SIN_DOME;
+int SIN_HALF_PERIOD;
+int SIN_PERIOD;
+int SIN_A;
+int SIN_B;
+int SIN_C;
+int SIN_D;
+int SIN_E;
 
-/*
-int sin(int x){
-    int xa;
-    int xb;
-    int xc;
-
+void setup_sin(int amplitude, int period){
     
-    if(x < SIN_DOME){
-        x = x - SIN_DOME;
-        xa = x * x;
-        xb = xa * x;
-        xc = xb * x;
-        return 33340519388/1018825 - (387106183*x)/31346958 - (1627178 * xa)/6197809495 + (2233 * xb)/5166279669 - xc/37901474938;
+    SIN_AMPLITUDE = amplitude;
+    SIN_HALF_PERIOD = period;
+    SIN_PERIOD = 2 * period;
+
+    amplitude = amplitude * 2;
+    SIN_A = 16 * amplitude * period;
+    SIN_B = 0 - 16 * amplitude;
+    SIN_C = 10 * period * period;
+    SIN_D = 0 - 8 * period;
+    SIN_E = 8;
+}
+
+int sin(int x){
+    
+    int xsq;
+    x = x - SIN_PERIOD * (x/SIN_PERIOD); 
+    
+    if(SIN_HALF_PERIOD < x){
+        x = x - SIN_HALF_PERIOD;
+        xsq = x * x;
+        return 0 - ((SIN_A * x + SIN_B * xsq) / (SIN_C + SIN_D * x + SIN_E * xsq));
     }
     else{
-        xa = x * x;
-        xb = xa * x;
-        xc = xb * x;
-        return 10808867695/329433 + (222660485*x)/18030528 + (1151780 * xa)/4387051091 - (2233 * xb)/5166279669 + xc/37901474938;
+        xsq = x * x;
+        return (SIN_A * x + SIN_B * xsq) / (SIN_C + SIN_D * x + SIN_E * xsq);    
     }
 }
-*/
 
 void main(void){
+
     int delta;
     int wave;
-    int period;
+    int tone[512];
 
-    SIN_AMPLITUDE = 65535;  /*2^16-1*/
-    SIN_DOME = 8191;        /*2^13-1*/
-
-    period = 1000;
+    setup_sin(128,32767);
     wave = 0;
-    delta = SIN_AMPLITUDE / period;
+    delta = 1;
+
     while(1){
-        if(AUDIO_CAPACITY){
-            AUDIO_SINK = wave;
-            wave = wave + delta;
+        int i;
+
+        i = 0;
+        while(i < 512){
+            tone[i] = sin(wave);
+            wave = wave + 1;
+            i = i + 1;
+        }
+
+        i = 0;
+        while(i < 512){
+            if(AUDIO_CAPACITY){
+                AUDIO_SINK = tone[i];
+                i = i + 1;
+            }
         }
     }
 }

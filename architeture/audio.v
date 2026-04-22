@@ -27,6 +27,7 @@ module audio #(
         .consumed(consumed),
         .capacity(capacity[$clog2(DEPTH)-1:0])
     );
+    assign capacity[36:$clog2(DEPTH)] = 0;
 
     reg [9:0] counter = 0;
 
