@@ -39,31 +39,38 @@ int sin(int x){
 }
 
 void main(void){
-
+    
     int delta;
     int wave;
+    int i;
     int tone[512];
 
-    setup_sin(128,32767);
+    /*
+    setup_sin(512,512);
     wave = 0;
     delta = 1;
 
+    while(i < 512){
+        tone[i] = sin(wave);
+        wave = wave + delta;
+        i = i + 1;
+    }
+
     while(1){
-        int i;
-
-        i = 0;
-        while(i < 512){
-            tone[i] = sin(wave);
-            wave = wave + 1;
+        if(AUDIO_CAPACITY){
+            AUDIO_SINK = tone[i];
             i = i + 1;
+            i = i - 512*i/512;
         }
+    }
+    */
 
-        i = 0;
-        while(i < 512){
-            if(AUDIO_CAPACITY){
-                AUDIO_SINK = tone[i];
-                i = i + 1;
-            }
+    wave = 0;
+    while(1){
+        if(AUDIO_CAPACITY){
+            AUDIO_SINK = 16384 * (wave < 24000);
+            wave = wave + 1;
+            wave = wave * (wave < 48000);
         }
     }
 }
