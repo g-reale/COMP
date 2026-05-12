@@ -1,76 +1,28 @@
-
-int SIN_AMPLITUDE;
-int SIN_HALF_PERIOD;
-int SIN_PERIOD;
-int SIN_A;
-int SIN_B;
-int SIN_C;
-int SIN_D;
-int SIN_E;
-
-void setup_sin(int amplitude, int period){
-    
-    SIN_AMPLITUDE = amplitude;
-    SIN_HALF_PERIOD = period;
-    SIN_PERIOD = 2 * period;
-
-    amplitude = amplitude * 2;
-    SIN_A = 16 * amplitude * period;
-    SIN_B = 0 - 16 * amplitude;
-    SIN_C = 10 * period * period;
-    SIN_D = 0 - 8 * period;
-    SIN_E = 8;
-}
-
-int sin(int x){
-    
-    int xsq;
-    x = x - SIN_PERIOD * (x/SIN_PERIOD); 
-    
-    if(SIN_HALF_PERIOD < x){
-        x = x - SIN_HALF_PERIOD;
-        xsq = x * x;
-        return 0 - ((SIN_A * x + SIN_B * xsq) / (SIN_C + SIN_D * x + SIN_E * xsq));
-    }
-    else{
-        xsq = x * x;
-        return (SIN_A * x + SIN_B * xsq) / (SIN_C + SIN_D * x + SIN_E * xsq);    
-    }
-}
-
 void main(void){
-    
-    int delta;
+
+    int AMPLITUDE;
+    int LENGTH;
+    int LEVELS;
+    int PERIOD;
+    int ASTEP;
+    int PSTEP;
+    int LSTEP;
     int wave;
-    int i;
-    int tone[512];
 
-    /*
-    setup_sin(512,512);
-    wave = 0;
-    delta = 1;
+    AMPLITUDE = 65535;              /*codec max value*/
+    LENGTH = 0-1;                   /*word max value*/
+    LEVELS = 4;                     /*amount of desired levels*/
+    PERIOD = 48000;                 /*period in samples*/
 
-    while(i < 512){
-        tone[i] = sin(wave);
-        wave = wave + delta;
-        i = i + 1;
-    }
-
-    while(1){
-        if(AUDIO_CAPACITY){
-            AUDIO_SINK = tone[i];
-            i = i + 1;
-            i = i - 512*i/512;
-        }
-    }
-    */
+    ASTEP = AMPLITUDE / LEVELS;
+    PSTEP = LENGTH / PERIOD;
+    LSTEP = LENGTH / LEVELS;
 
     wave = 0;
     while(1){
         if(AUDIO_CAPACITY){
-            AUDIO_SINK = 16384 * (wave < 24000);
-            wave = wave + 1;
-            wave = wave * (wave < 48000);
+            AUDIO_SINK = 10000 * (wave / LSTEP);
+            wave = wave + PSTEP;
         }
     }
 }
