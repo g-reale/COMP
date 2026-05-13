@@ -1,5 +1,5 @@
-levels = 16;
-amplitude = 2^15 - 1;
+levels = 64;
+amplitude = 2^16 - 1;
 delta = 2*pi/(levels-1);
 x = 0:delta:2*pi;
 y = round(amplitude * (sin(x) + 1) / 2);

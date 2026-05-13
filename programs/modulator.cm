@@ -4,22 +4,70 @@ int LENGTH;
 int PERIOD;
 
 void setupsin(int tone[]){
-    tone[0] = 16384;
-    tone[1] = 23047;
-    tone[2] = 28559;
-    tone[3] = 31965;
-    tone[4] = 32677;
-    tone[5] = 30572;
-    tone[6] = 26013;
-    tone[7] = 19790;
-    tone[8] = 12977;
-    tone[9] = 6754;
-    tone[10] = 2195;
-    tone[11] = 90;
-    tone[12] = 802;
-    tone[13] = 4208;
-    tone[14] = 9720;
-    tone[15] = 16383;
+    tone[0] = 32768;
+    tone[1] = 36030;
+    tone[2] = 39260;
+    tone[3] = 42426;
+    tone[4] = 45496;
+    tone[5] = 48439;
+    tone[6] = 51226;
+    tone[7] = 53830;
+    tone[8] = 56225;
+    tone[9] = 58386;
+    tone[10] = 60293;
+    tone[11] = 61926;
+    tone[12] = 63270;
+    tone[13] = 64310;
+    tone[14] = 65037;
+    tone[15] = 65443;
+    tone[16] = 65525;
+    tone[17] = 65281;
+    tone[18] = 64713;
+    tone[19] = 63829;
+    tone[20] = 62635;
+    tone[21] = 61145;
+    tone[22] = 59373;
+    tone[23] = 57336;
+    tone[24] = 55055;
+    tone[25] = 52553;
+    tone[26] = 49854;
+    tone[27] = 46985;
+    tone[28] = 43975;
+    tone[29] = 40853;
+    tone[30] = 37651;
+    tone[31] = 34401;
+    tone[32] = 31134;
+    tone[33] = 27884;
+    tone[34] = 24682;
+    tone[35] = 21560;
+    tone[36] = 18550;
+    tone[37] = 15681;
+    tone[38] = 12982;
+    tone[39] = 10480;
+    tone[40] = 8199;
+    tone[41] = 6162;
+    tone[42] = 4390;
+    tone[43] = 2900;
+    tone[44] = 1706;
+    tone[45] = 822;
+    tone[46] = 254;
+    tone[47] = 10;
+    tone[48] = 92;
+    tone[49] = 498;
+    tone[50] = 1225;
+    tone[51] = 2265;
+    tone[52] = 3609;
+    tone[53] = 5242;
+    tone[54] = 7149;
+    tone[55] = 9310;
+    tone[56] = 11705;
+    tone[57] = 14309;
+    tone[58] = 17096;
+    tone[59] = 20039;
+    tone[60] = 23109;
+    tone[61] = 26275;
+    tone[62] = 29505;
+    tone[63] = 32767;
 }
 
 void setupperiods(int periods[]){
@@ -29,16 +77,15 @@ void setupperiods(int periods[]){
 
 void main(void){
 
-    int TONE[16];
+    int TONE[64];
     int QUANTIZER;
     int PERIODS[2];
     int SYMBOL_TIME;
 
-    LEVELS = 16;
+    LEVELS = 64;
+    LENGTH = 0-1;
     QUANTIZER = LENGTH/LEVELS;
     SYMBOL_TIME = 10*48000;
-    LENGTH = 0-1;
-
     setupsin(TONE);
     setupperiods(PERIODS);
 
