@@ -22,27 +22,46 @@ void setupsin(int tone[]){
     tone[15] = 16383;
 }
 
+void setupperiods(int periods[]){
+    periods[0] = 24000;
+    periods[1] = 48000;
+}
+
 void main(void){
 
-    int wave;
-    int tone[16];
-    int PSTEP;
-    int LSTEP;
+    int TONE[16];
+    int QUANTIZER;
+    int PERIODS[2];
+    int SYMBOL_TIME;
 
     LEVELS = 16;
-
-    AMPLITUDE = 65535;
+    QUANTIZER = LENGTH/LEVELS;
+    SYMBOL_TIME = 10*48000;
     LENGTH = 0-1;
-    PERIOD = 48000;
-    PSTEP = LENGTH/PERIOD;
-    LSTEP = LENGTH/LEVELS;
-    setupsin(tone);
 
-    wave = 0;
+    setupsin(TONE);
+    setupperiods(PERIODS);
+
     while(1){
-        if(AUDIO_CAPACITY){
-            AUDIO_SINK = tone[wave/LSTEP];
-            wave = wave + PSTEP;
+        int symbol;
+        int period;
+        int delta;
+        int time;
+        int wave;
+        
+        symbol = SWICHADDR;
+        symbol = symbol * (symbol < 2);
+        period = PERIODS[symbol];
+        delta = LENGTH / period;
+        time = SYMBOL_TIME;
+        wave = 0;
+
+        while(time){
+            if(AUDIO_CAPACITY){
+                AUDIO_SINK = TONE[wave/QUANTIZER];
+                wave = wave + delta;
+                time = time - 1;
+            }
         }
     }
 }
