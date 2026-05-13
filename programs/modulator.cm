@@ -1,27 +1,47 @@
+int LEVELS;
+int AMPLITUDE;
+int LENGTH;
+int PERIOD;
+
+void setupsin(int tone[]){
+    tone[0] = 16384;
+    tone[1] = 23047;
+    tone[2] = 28559;
+    tone[3] = 31965;
+    tone[4] = 32677;
+    tone[5] = 30572;
+    tone[6] = 26013;
+    tone[7] = 19790;
+    tone[8] = 12977;
+    tone[9] = 6754;
+    tone[10] = 2195;
+    tone[11] = 90;
+    tone[12] = 802;
+    tone[13] = 4208;
+    tone[14] = 9720;
+    tone[15] = 16383;
+}
+
 void main(void){
 
-    int AMPLITUDE;
-    int LENGTH;
-    int LEVELS;
-    int PERIOD;
-    int ASTEP;
+    int wave;
+    int tone[16];
     int PSTEP;
     int LSTEP;
-    int wave;
 
-    AMPLITUDE = 65535;              /*codec max value*/
-    LENGTH = 0-1;                   /*word max value*/
-    LEVELS = 4;                     /*amount of desired levels*/
-    PERIOD = 48000;                 /*period in samples*/
+    LEVELS = 16;
 
-    ASTEP = AMPLITUDE / LEVELS;
-    PSTEP = LENGTH / PERIOD;
-    LSTEP = LENGTH / LEVELS;
+    AMPLITUDE = 65535;
+    LENGTH = 0-1;
+    PERIOD = 48000;
+    PSTEP = LENGTH/PERIOD;
+    LSTEP = LENGTH/LEVELS;
+    setupsin(tone);
 
     wave = 0;
     while(1){
         if(AUDIO_CAPACITY){
-            AUDIO_SINK = 10000 * (wave / LSTEP);
+            AUDIO_SINK = tone[wave/LSTEP];
             wave = wave + PSTEP;
         }
     }

@@ -36,7 +36,7 @@ module circular #(
             consumed <= memory[read];
             read     <= read + 1;
         end else if(cedge && empty)
-            consumed <= memory[read];
+            consumed <= 0;
     end
 
 endmodule
