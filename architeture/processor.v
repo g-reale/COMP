@@ -1,35 +1,4 @@
 module processor(
-    `ifdef DEBUG
-    output reg read_clock,
-    output reg write_clock,
-    output reg [`arg_l] read_from,
-    output reg [`arg_l] write_into,
-    output wire [`word_l] read,
-    output reg [`word_l] write,
-    output reg [`op_l] operator,
-    output reg [`word_l] arg_a,
-    output reg [`word_l] arg_b,
-    output reg [`word_l] currpc,
-    output wire [`word_l] nxtpc,
-    output wire [`word_l] result,
-    output reg [`arg_l] op_a,
-    output reg [`arg_l] op_b,
-    output reg [`arg_l] op_c,
-    output reg [`word_l] displaying,
-    output reg [4:0] state = INSTRUCTION_FETCH,
-    output reg [4:0] goto = 0,
-    output reg [`word_l]query,
-	 output reg [7:0] character,
-    output wire ready,
-    output reg consume,
-    output reg interruption;
-    output reg [`word_l] quantum;
-    output reg [`word_l] destination;
-    output wire [`word_l] capacity;
-    output reg [`word_l] sample;
-    output reg produce;
-    `endif 
-
     input wire CLOCK_50,
     input wire [17:0] SW,
     input wire [3:0] KEY,
@@ -51,55 +20,37 @@ module processor(
     output wire DACDAT
 );
 
-    // clock divider 
-    `ifdef DEBUG
-    wire clock;
-    assign clock = CLOCK_50;
-
-    `else
-    // wire clock;
-    // assign clock = CLOCK_50;
     
-    reg clock;
-    reg [25:0] divider = 26'd0;
-    always @(posedge CLOCK_50) begin
-        if(divider == 26'd2) begin //25000000
-            clock <= !clock;
-            divider <= 0;
-        end else begin
-            divider <= divider + 1;
-      end
-    end
-	 
-		reg read_clock = 0;
-		reg write_clock = 0;
-		reg [`arg_l] read_from = 0;
-		reg [`arg_l] write_into = 0;
-		wire [`word_l] read;
-		reg [`word_l] write = 0;
-		reg [`op_l] operator = 0;
-		reg [`word_l] arg_a = 0;
-		reg [`word_l] arg_b = 0;
-		reg [`word_l] currpc = 0;
-		wire [`word_l] nxtpc;
-		wire [`word_l] result;
-		reg [`arg_l] op_a = 0;
-		reg [`arg_l] op_b = 0;
-		reg [`arg_l] op_c = 0;
-		reg [`word_l] displaying = 0;
-		reg [4:0] state = INSTRUCTION_FETCH;
-		reg [4:0] goto = 0;
-		reg [`word_l] query = 0;
-		reg [7:0] character = 0;
-		wire ready;
-		reg consume = 0;
-		reg interruption = 0;
-		reg [`word_l] quantum = 0;
-		reg [`word_l] destination = 0;
-		wire [`word_l] capacity;
-		reg [`word_l] sample = 0;
-		reg produce = 0;
-    `endif
+    reg read_clock = 0;
+    reg write_clock = 0;
+    reg [`arg_l] read_from = 0;
+    reg [`arg_l] write_into = 0;
+    wire [`word_l] read;
+    reg [`word_l] write = 0;
+    reg [`op_l] operator = 0;
+    reg [`word_l] arg_a = 0;
+    reg [`word_l] arg_b = 0;
+    reg [`word_l] currpc = 0;
+    wire [`word_l] nxtpc;
+    wire [`word_l] result;
+    reg [`arg_l] op_a = 0;
+    reg [`arg_l] op_b = 0;
+    reg [`arg_l] op_c = 0;
+    reg [`word_l] displaying = 0;
+    reg [4:0] state = INSTRUCTION_FETCH;
+    reg [4:0] goto = 0;
+    reg [`word_l] query = 0;
+    reg [7:0] character = 0;
+    wire ready;
+    reg consume = 0;
+    reg interruption = 0;
+    reg [`word_l] quantum = 0;
+    reg [`word_l] destination = 0;
+    wire [`word_l] capacity;
+    reg [`word_l] sample = 0;
+    reg produce = 0;
+    wire [17:0] switches;
+    
 
     ram r(
         .data(write),
@@ -155,6 +106,12 @@ module processor(
         .dacdat(DACDAT)
      );
 
+     debounce db(
+        .clock(CLOCK_50),
+        .switches(SW),
+        .debounced(switches)
+     );
+
     localparam INSTRUCTION_FETCH                      = 5'd0;
     localparam INSTRUCTION_FETCH_1                    = 5'd1;
     localparam INSTRUCTION_FETCH_2                    = 5'd2;
@@ -187,28 +144,28 @@ module processor(
 
     always @(posedge CLOCK_50) begin
         
-//        if (!KEY[0]) begin
-//        state      <= INSTRUCTION_FETCH;
-//        currpc     <= 0;
-//        query      <= 0;
-//        operator   <= 0;
-//        arg_a      <= 0;
-//        arg_b      <= 0;
-//        read_from  <= 0;
-//        write_into <= 0;
-//        produce    <= 0;
-//        interruption <= 0;
-//        quantum <= 0;
-//        end else begin
+       if (!KEY[0]) begin
+       state      <= INSTRUCTION_FETCH;
+       currpc     <= 0;
+       query      <= 0;
+       operator   <= 0;
+       arg_a      <= 0;
+       arg_b      <= 0;
+       read_from  <= 0;
+       write_into <= 0;
+       produce    <= 0;
+       interruption <= 0;
+       quantum <= 0;
+       end else begin
         
         case(state)
             
 			DEFERENCE: begin
 				case(read_from)
 					`SWITCH_ADDR: begin
-						query <= SW[16:0];
-						if(SW[16:0] != 0) displaying <= SW[16:0];
-						if(SW[17]) state <= SWICH_READ;
+						query <= switches[16:0];
+						if(switches[16:0] != 0) displaying <= switches[16:0];
+						if(switches[17]) state <= SWICH_READ;
 				    end
 					 
 					  `AUDIO_CAPACITY: begin
@@ -235,7 +192,7 @@ module processor(
 			
 			SWICH_READ: begin
 				displaying <= 0;
-			    if(SW[17] == 0) state <= goto;
+			    if(switches[17] == 0) state <= goto;
 		    end
 
             WRITE: begin
@@ -487,6 +444,6 @@ module processor(
 
             default: state <= INSTRUCTION_FETCH;
         endcase
-//        end
+       end
     end
 endmodule

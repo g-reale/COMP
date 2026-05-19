@@ -34,11 +34,11 @@ module audio #(
     always @(posedge clock)
         counter <= counter + 1;
 
-    assign mclk   = ~counter[1]; //MAYBE INVERTED I DON'T KNOW
+    assign mclk   = counter[1];
     assign bclk   = counter[3];
     assign daclrc = counter[9];
 
-    wire [9:0] next_count = counter + 1;
+    wire [9:0] next_count = counter + 2;
     wire bclk_fall        = next_count[3] < counter[3];
     wire daclrc_change    = next_count[9] != counter[9];
 
@@ -51,7 +51,7 @@ module audio #(
     localparam PAD_1    = 6;
 
     reg [WIDTH-1:0] sample = 0;
-    reg [2:0] state = RESET; //SETUP_DATA
+    reg [2:0] state = RESET;
     reg [4:0] index;
     
     always @(posedge clock) begin
