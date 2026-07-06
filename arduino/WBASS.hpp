@@ -20,7 +20,6 @@ class WBASS {
         complex_t memory[3][N];
         Filter<LPF_FIR_SIZE,LPF_IIR_SIZE,float,complex_t, complex_t> lpf;
         Filter<HPF_FIR_SIZE,HPF_IIR_SIZE,float,complex_t, complex_t> hpf;
-        Filter<ANALYTIC_FIR_SIZE,ANALYTIC_IIR_SIZE,complex_t,sampletype,complex_t> analytic;
         
         float energy(const complex_t samples[N], size_t decimation){
             float energy = 0;
@@ -38,7 +37,7 @@ class WBASS {
         }
 
     public:
-        WBASS() : lpf(LPF_FIR_COEFFS,LPF_IIR_COEFFS), hpf(HPF_FIR_COEFFS,HPF_IIR_COEFFS), analytic(ANALYTIC_FIR_COEFFS,ANALYTIC_IIR_COEFFS){};
+        WBASS() : lpf(LPF_FIR_COEFFS,LPF_IIR_COEFFS), hpf(HPF_FIR_COEFFS,HPF_IIR_COEFFS){};
         
         symbol_t execute(const sampletype downsampled[N]){
             
@@ -46,7 +45,6 @@ class WBASS {
             complex_t * lower = memory[1];
             complex_t * upper = memory[2];
 
-            
             symbol_t symbol;
             size_t decimation = 1;
             uint8_t low = 0;
@@ -55,17 +53,16 @@ class WBASS {
             float upf = CHANNEL_END;
             float ub_energy;
             float lb_energy;
-            analytic.template execute<N>(downsampled,whole);
+
+            memcpy(whole,downsampled,sizeof(sampletype) * N);
             
-            for(size_t i = 0; i <= ITERATIONS; i++, decimation <<= 1){
+            for(size_t i = 0; i < ITERATIONS; i++, decimation <<= 1){
                 
                 lpf.execute<N>(whole,lower,decimation);
                 hpf.execute<N>(whole,upper,decimation);
                 lb_energy = energy(lower,decimation);
                 ub_energy = energy(upper,decimation);
 
-                // if(!i && lb_energy + ub_energy) total = lb_energy + ub_energy;
-                
                 if(lb_energy >= ub_energy){
                     complex_t * aux = whole;
                     whole = lower;
@@ -79,7 +76,6 @@ class WBASS {
                     lowf = (upf+lowf)/2.0f;
                 }
                 
-                // Serial.printf("lb=%.9f ub=%.9f low=%.9f up=%.9f ratio=%.9f\n", lb_energy, ub_energy, low, up, max(ub_energy,lb_energy));
                 hpf.clear();
                 lpf.clear();
             }
@@ -88,10 +84,6 @@ class WBASS {
             symbol.data = (low + up)>>1;
             symbol.frequency = (lowf + upf)/2.0f;
             return symbol;
-        }
-
-        void clear(){
-            analytic.clear();
         }
 };
 

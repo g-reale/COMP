@@ -85,9 +85,9 @@ private:
     //variables
     inline static state_t state = (state_t)0;
     inline static float decision_threshold;
-    inline static WBASS<FRAME_SIZE,complex_t> * wbass;
     inline static Microphone<BUFFER_SIZE> * mic;
     inline static Demodulator<BUFFER_SIZE> * demod;
+    inline static WBASS<FRAME_SIZE,complex_t> * wbass;
     inline static Downsampler<BUFFER_SIZE,FRAME_SIZE,complex_t> * downs;
     inline static Filter<FILTER_LENGTH,0,float,float,float> * filter;
     static constexpr size_t TRANSITION_COUNT = sizeof(SCREENS) / sizeof(SCREENS[0]);
@@ -150,6 +150,7 @@ inline bool Receiver::f_INITIALIZE(){
 
 inline bool Receiver::f_PROBE(){
     filter->clear();
+    demod->clear();
     Serial.println("Input the symbol decision threshold: ");
     while(!Serial.available()) delay(100);
     decision_threshold = Serial.parseFloat();
@@ -177,15 +178,23 @@ inline bool Receiver::f_RECEIVE(){
 
     switch (hysteresis){
         case SETTING:{
+            static bool done = false;
+            static uint8_t data = 0;
             if(energy < decision_threshold) return false;
             Serial.printf(">s: %f\n",symbol.frequency);
-            Serial.printf("%c\n",symbol.data);
+            data |= symbol.data;
+            if(done){
+                Serial.printf("%c(",data);
+                Serial.print(data,BIN);
+                Serial.printf(")\n");
+            };
+            data <<= 4;
+            done = !done;
             hysteresis = RESETTING;
         }break;
 
         case RESETTING:{
             if(decision_threshold <= energy) return false;
-            Serial.printf("Reset\n");
             hysteresis = SETTING;
         }break;
     }

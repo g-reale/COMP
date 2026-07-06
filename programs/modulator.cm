@@ -1,7 +1,6 @@
-int LEVELS;
-int AMPLITUDE;
+int ORDER;
+int SECOND;
 int LENGTH;
-int PERIOD;
 
 void setupsin(int tone[]){
     tone[0] = 32768;
@@ -70,25 +69,79 @@ void setupsin(int tone[]){
     tone[63] = 32767;
 }
 
-void setupperiods(int periods[]){
-    periods[0] = 24000;
-    periods[1] = 48000;
+void setupdeltas(int deltas[]){
+    int CHANNEL_START;
+    int CHANNEL_END;
+    int CHANNEL_LENGTH;
+    int i = 0;
+
+    CHANNEL_START = 2500;
+    CHANNEL_END = 12500;
+    CHANNEL_LENGTH = CHANNEL_END - CHANNEL_START;
+    
+    while(i < ORDER){
+        int frequency;
+        frequency = (i * CHANNEL_LENGTH) / ORDER + CHANNEL_LENGTH / (2*ORDER) + CHANNEL_START;
+        deltas[i] = (LENGTH/SECOND) * frequency;
+        i = i + 1;
+    }
+}
+
+int setupmsg(int symbols[]){
+    int MESSAGE[11];
+    int MSG_SIZE;
+    int i;
+    int j;
+    
+    MSG_SIZE = 11;
+    MESSAGE[0] = 'H';
+    MESSAGE[1] = 'e';
+    MESSAGE[2] = 'l';
+    MESSAGE[3] = 'l';
+    MESSAGE[4] = 'o';
+    MESSAGE[5] = ' ';
+    MESSAGE[6] = 'W';
+    MESSAGE[7] = 'o';
+    MESSAGE[8] = 'r';
+    MESSAGE[9] = 'l';
+    MESSAGE[10] = 'd';
+
+    i = 0;
+    j = 0;
+    while(i < MSG_SIZE){
+        symbols[j]      = MESSAGE[i] / 16;
+        symbols[j + 1]  = MESSAGE[i] - symbols[j] * 16;
+        j = j + 2;
+        i = i + 1;
+    }
+
+    return j;
 }
 
 void main(void){
 
     int TONE[64];
     int QUANTIZER;
-    int PERIODS[2];
+    int DELTAS[16];
     int SYMBOL_TIME;
+    int LEVELS;
+    int SYMBOLS[64];
+    int SYMBOL_AMOUNT;
+    int index;
+    
+    ORDER = 16;
+    SECOND = 48828;
+    LENGTH = 0-1;
 
     LEVELS = 64;
-    LENGTH = 0-1;
     QUANTIZER = LENGTH/LEVELS;
-    SYMBOL_TIME = 10*48000;
+    SYMBOL_TIME = SECOND;
+    
     setupsin(TONE);
-    setupperiods(PERIODS);
+    setupdeltas(DELTAS);
+    SYMBOL_AMOUNT = setupmsg(SYMBOLS);
 
+    index = 0;
     while(1){
         int symbol;
         int period;
@@ -96,17 +149,25 @@ void main(void){
         int time;
         int wave;
         
-        symbol = SWICHADDR;
-        symbol = symbol * (symbol < 2);
-        period = PERIODS[symbol];
-        delta = LENGTH / period;
+        symbol = SYMBOLS[index];
+        delta = DELTAS[symbol];
         time = SYMBOL_TIME;
+        index = index + 1;
+        index = index * (index < SYMBOL_AMOUNT);
         wave = 0;
 
         while(time){
             if(AUDIO_CAPACITY){
                 AUDIO_SINK = TONE[wave/QUANTIZER];
                 wave = wave + delta;
+                time = time - 1;
+            }
+        }
+
+        time = SYMBOL_TIME;
+        while(time){
+            if(AUDIO_CAPACITY){
+                AUDIO_SINK = 0;
                 time = time - 1;
             }
         }

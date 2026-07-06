@@ -1,8 +1,8 @@
 clear; clc; clear all; clf;
 pkg load signal;
 
-len = 32;
-lpf = fir1(len,0.5);
+len = 16;
+lpf = fir1(len,0.65);
 hpf = lpf .* cos(pi*(0:len));
 
 [H_lpf, w] = freqz(lpf, 1, 4096);
