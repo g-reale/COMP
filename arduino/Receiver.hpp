@@ -178,18 +178,9 @@ inline bool Receiver::f_RECEIVE(){
 
     switch (hysteresis){
         case SETTING:{
-            static bool done = false;
-            static uint8_t data = 0;
             if(energy < decision_threshold) return false;
             Serial.printf(">s: %f\n",symbol.frequency);
-            data |= symbol.data;
-            if(done){
-                Serial.printf("%c(",data);
-                Serial.print(data,BIN);
-                Serial.printf(")\n");
-            };
-            data <<= 4;
-            done = !done;
+            Serial.println(symbol.data,BIN);
             hysteresis = RESETTING;
         }break;
 

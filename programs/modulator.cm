@@ -73,38 +73,37 @@ void setupdeltas(int deltas[]){
     int CHANNEL_START;
     int CHANNEL_END;
     int CHANNEL_LENGTH;
-    int i = 0;
+    int i;
 
     CHANNEL_START = 2500;
     CHANNEL_END = 12500;
     CHANNEL_LENGTH = CHANNEL_END - CHANNEL_START;
-    
+   
+    i = 0;
     while(i < ORDER){
         int frequency;
         frequency = (i * CHANNEL_LENGTH) / ORDER + CHANNEL_LENGTH / (2*ORDER) + CHANNEL_START;
-        deltas[i] = (LENGTH/SECOND) * frequency;
+        deltas[i] = (LENGTH/(SECOND * 2)) *  frequency;
         i = i + 1;
     }
 }
 
 int setupmsg(int symbols[]){
-    int MESSAGE[11];
+   
+    int MESSAGE[8];
     int MSG_SIZE;
     int i;
     int j;
-    
-    MSG_SIZE = 11;
-    MESSAGE[0] = 'H';
-    MESSAGE[1] = 'e';
-    MESSAGE[2] = 'l';
-    MESSAGE[3] = 'l';
-    MESSAGE[4] = 'o';
-    MESSAGE[5] = ' ';
-    MESSAGE[6] = 'W';
-    MESSAGE[7] = 'o';
-    MESSAGE[8] = 'r';
-    MESSAGE[9] = 'l';
-    MESSAGE[10] = 'd';
+   
+    MSG_SIZE = 8;
+    MESSAGE[0] = 1;
+    MESSAGE[1] = 35;
+    MESSAGE[2] = 69;
+    MESSAGE[3] = 103;
+    MESSAGE[4] = 137;
+    MESSAGE[5] = 171;
+    MESSAGE[6] = 205;
+    MESSAGE[7] = 239;
 
     i = 0;
     j = 0;
@@ -128,18 +127,19 @@ void main(void){
     int SYMBOLS[64];
     int SYMBOL_AMOUNT;
     int index;
-    
+   
     ORDER = 16;
     SECOND = 48828;
     LENGTH = 0-1;
 
     LEVELS = 64;
     QUANTIZER = LENGTH/LEVELS;
-    SYMBOL_TIME = SECOND;
-    
+    SYMBOL_TIME = 10 * SECOND;
+   
     setupsin(TONE);
     setupdeltas(DELTAS);
     SYMBOL_AMOUNT = setupmsg(SYMBOLS);
+    DISPADDR = SYMBOL_AMOUNT;
 
     index = 0;
     while(1){
@@ -148,7 +148,7 @@ void main(void){
         int delta;
         int time;
         int wave;
-        
+       
         symbol = SYMBOLS[index];
         delta = DELTAS[symbol];
         time = SYMBOL_TIME;
